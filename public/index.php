@@ -1,0 +1,75 @@
+<?php
+/**
+ * Main Router - Sistema Básico Contable ContaBot
+ * Handles all URL routing for the application
+ */
+
+// Include configuration
+require_once '../config/config.php';
+
+// Get the URL from the request
+$url = isset($_GET['url']) ? $_GET['url'] : '';
+$url = rtrim($url, '/');
+$url = filter_var($url, FILTER_SANITIZE_URL);
+
+// Split URL into parts
+$urlParts = $url ? explode('/', $url) : ['dashboard'];
+
+// Extract controller and action
+$controllerName = !empty($urlParts[0]) ? $urlParts[0] : 'dashboard';
+$action = isset($urlParts[1]) ? $urlParts[1] : 'index';
+$params = array_slice($urlParts, 2);
+
+// Map routes to controllers
+$routes = [
+    '' => 'DashboardController',
+    'dashboard' => 'DashboardController',
+    'login' => 'AuthController',
+    'register' => 'AuthController',
+    'logout' => 'AuthController',
+    'profile' => 'UserController',
+    'movements' => 'MovementController',
+    'categories' => 'CategoryController',
+    'reports' => 'ReportController',
+    'test' => 'TestController'
+];
+
+// Get controller class name
+$controllerClass = isset($routes[$controllerName]) ? $routes[$controllerName] : 'DashboardController';
+
+// Check if controller file exists
+$controllerFile = '../controllers/' . $controllerClass . '.php';
+if (!file_exists($controllerFile)) {
+    http_response_code(404);
+    echo "404 - Page not found";
+    exit();
+}
+
+// Include and instantiate controller
+require_once $controllerFile;
+
+if (!class_exists($controllerClass)) {
+    http_response_code(500);
+    echo "500 - Controller not found";
+    exit();
+}
+
+$controller = new $controllerClass();
+
+// Check if method exists
+$method = $action;
+if (!method_exists($controller, $method)) {
+    $method = 'index';
+}
+
+// Call the controller method
+try {
+    call_user_func_array([$controller, $method], $params);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo "500 - Internal Server Error";
+    if (ini_get('display_errors')) {
+        echo "<br>Error: " . $e->getMessage();
+    }
+}
+?>
