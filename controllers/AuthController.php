@@ -15,6 +15,13 @@ class AuthController extends BaseController {
     }
     
     /**
+     * Default index method - redirect to login
+     */
+    public function index() {
+        $this->login();
+    }
+    
+    /**
      * Show login form
      */
     public function login() {

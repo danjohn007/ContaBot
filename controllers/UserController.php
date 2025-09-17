@@ -16,6 +16,13 @@ class UserController extends BaseController {
     }
     
     /**
+     * Default index method - redirect to profile
+     */
+    public function index() {
+        $this->profile();
+    }
+    
+    /**
      * Show user profile
      */
     public function profile() {
