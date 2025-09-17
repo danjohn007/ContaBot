@@ -1,5 +1,5 @@
 -- Sample Data for ContaBot Sistema Básico Contable
-USE contabot_db;
+USE ejercito_contabot;
 
 -- Sample users (password is 'password123' hashed)
 INSERT INTO users (email, password, name, rfc, user_type) VALUES

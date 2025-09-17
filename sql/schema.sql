@@ -2,8 +2,8 @@
 -- Database Schema
 
 -- Create database
-CREATE DATABASE IF NOT EXISTS contabot_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE contabot_db;
+CREATE DATABASE IF NOT EXISTS ejercito_contabot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE ejercito_contabot;
 
 -- Users table
 CREATE TABLE users (
