@@ -25,7 +25,13 @@ class User {
         
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
-        return $stmt->execute([$email, $hashed_password, $name, $rfc, $user_type]);
+        try {
+            return $stmt->execute([$email, $hashed_password, $name, $rfc, $user_type]);
+        } catch (PDOException $e) {
+            // Log the error for debugging
+            error_log("User creation error: " . $e->getMessage());
+            return false;
+        }
     }
     
     /**
@@ -75,7 +81,13 @@ class User {
         $query = "UPDATE users SET name = ?, rfc = ?, user_type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
         $stmt = $this->conn->prepare($query);
         
-        return $stmt->execute([$name, $rfc, $user_type, $id]);
+        try {
+            return $stmt->execute([$name, $rfc, $user_type, $id]);
+        } catch (PDOException $e) {
+            // Log the error for debugging
+            error_log("User profile update error: " . $e->getMessage());
+            return false;
+        }
     }
     
     /**
