@@ -15,6 +15,11 @@ class User {
      * Create a new user
      */
     public function create($email, $password, $name, $rfc = null, $user_type = 'personal') {
+        // Validate user_type
+        if (!in_array($user_type, ['personal', 'business'])) {
+            $user_type = 'personal'; // Set default if invalid
+        }
+        
         $query = "INSERT INTO users (email, password, name, rfc, user_type) VALUES (?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
         
@@ -62,6 +67,11 @@ class User {
      * Update user profile
      */
     public function updateProfile($id, $name, $rfc = null, $user_type = null) {
+        // Validate user_type if provided
+        if ($user_type !== null && !in_array($user_type, ['personal', 'business'])) {
+            $user_type = 'personal'; // Set default if invalid
+        }
+        
         $query = "UPDATE users SET name = ?, rfc = ?, user_type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
         $stmt = $this->conn->prepare($query);
         
