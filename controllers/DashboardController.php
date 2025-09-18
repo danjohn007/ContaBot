@@ -24,6 +24,7 @@ class DashboardController extends BaseController {
         $summaryData = $this->getSummaryData($userId);
         $recentMovements = $this->getRecentMovements($userId);
         $monthlyData = $this->getMonthlyData($userId);
+        $categoryData = $this->getCategoryExpenseData($userId);
         
         $data = [
             'title' => 'Dashboard - ContaBot',
@@ -32,6 +33,7 @@ class DashboardController extends BaseController {
             'summary' => $summaryData,
             'recent_movements' => $recentMovements,
             'monthly_data' => $monthlyData,
+            'category_data' => $categoryData,
             'flash' => $this->getFlash()
         ];
         
@@ -124,7 +126,7 @@ class DashboardController extends BaseController {
                     SUM(amount) as total
                  FROM movements 
                  WHERE user_id = ? 
-                 AND movement_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                 AND movement_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
                  GROUP BY DATE_FORMAT(movement_date, '%Y-%m'), type
                  ORDER BY month";
         
@@ -158,6 +160,41 @@ class DashboardController extends BaseController {
         }
         
         return $monthlyData;
+    }
+    
+    /**
+     * Get category expense data for current month
+     */
+    private function getCategoryExpenseData($userId) {
+        $currentMonth = date('Y-m');
+        
+        $query = "SELECT c.name, c.color, SUM(m.amount) as total
+                 FROM movements m
+                 INNER JOIN categories c ON m.category_id = c.id
+                 WHERE m.user_id = ? AND m.type = 'expense'
+                 AND DATE_FORMAT(m.movement_date, '%Y-%m') = ?
+                 GROUP BY c.id, c.name, c.color
+                 ORDER BY total DESC
+                 LIMIT 10";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$userId, $currentMonth]);
+        $results = $stmt->fetchAll();
+        
+        // Format data for chart
+        $categoryData = [
+            'labels' => [],
+            'data' => [],
+            'colors' => []
+        ];
+        
+        foreach ($results as $row) {
+            $categoryData['labels'][] = $row['name'];
+            $categoryData['data'][] = (float)$row['total'];
+            $categoryData['colors'][] = $row['color'];
+        }
+        
+        return $categoryData;
     }
 }
 ?>

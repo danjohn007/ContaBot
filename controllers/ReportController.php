@@ -92,12 +92,12 @@ class ReportController extends BaseController {
         $dateFrom = $year . '-01-01';
         $dateTo = $year . '-12-31';
         
-        // Get fiscal movements
+        // Get fiscal movements (billed movements)
         $fiscalMovements = $this->movementModel->getUserMovements($userId, [
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
-            'classification' => 'fiscal'
-        ], 1, 1000); // Get all fiscal movements
+            'is_billed' => true
+        ], 1, 1000); // Get all billed movements
         
         // Calculate fiscal summary
         $fiscalSummary = [

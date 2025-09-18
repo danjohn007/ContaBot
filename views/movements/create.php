@@ -100,8 +100,6 @@
                                 <option value="">Seleccionar clasificación</option>
                                 <option value="personal">👤 Personal</option>
                                 <option value="business">🏢 Negocio</option>
-                                <option value="fiscal">📋 Fiscal</option>
-                                <option value="non_fiscal">📄 No Fiscal</option>
                             </select>
                             <div class="invalid-feedback">
                                 Por favor selecciona una clasificación.
@@ -144,12 +142,12 @@
                     </div>
                     
                     <!-- Additional Options -->
-                    <div class="mb-3" id="billing-options" style="display: none;">
+                    <div class="mb-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="is_billed" name="is_billed">
                             <label class="form-check-label" for="is_billed">
                                 <i class="fas fa-file-invoice me-1"></i>
-                                Marcar como facturado
+                                FACTURADO (Incluir en reporte fiscal)
                             </label>
                         </div>
                     </div>
@@ -172,19 +170,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const typeSelect = document.getElementById('type');
-    const billingOptions = document.getElementById('billing-options');
     const categorySelect = document.getElementById('category_id');
-    
-    // Show/hide billing options based on type
-    typeSelect.addEventListener('change', function() {
-        if (this.value === 'expense') {
-            billingOptions.style.display = 'block';
-        } else {
-            billingOptions.style.display = 'none';
-            document.getElementById('is_billed').checked = false;
-        }
-    });
     
     // Update category color preview
     categorySelect.addEventListener('change', function() {
@@ -208,8 +194,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (categoryName.includes('oficina') || categoryName.includes('trabajo') || 
                    categoryName.includes('negocio')) {
             classificationSelect.value = 'business';
-        } else if (categoryName.includes('fiscal') || categoryName.includes('factura')) {
-            classificationSelect.value = 'fiscal';
         } else {
             classificationSelect.value = 'personal';
         }
