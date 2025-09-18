@@ -198,6 +198,87 @@ class User {
     }
     
     /**
+     * Register payment for a billing record
+     */
+    public function registerPayment($billingId, $paymentMethod, $transactionId = null, $notes = null, $paymentDate = null) {
+        if (!$paymentDate) {
+            $paymentDate = date('Y-m-d H:i:s');
+        }
+        
+        try {
+            $this->conn->beginTransaction();
+            
+            // Update billing record
+            $query = "UPDATE billing_history SET 
+                     payment_status = 'paid',
+                     payment_method = ?,
+                     transaction_id = ?,
+                     notes = ?,
+                     payment_date = ?,
+                     updated_at = CURRENT_TIMESTAMP
+                     WHERE id = ?";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute([$paymentMethod, $transactionId, $notes, $paymentDate, $billingId]);
+            
+            // Get user_id and plan details from billing record
+            $billingQuery = "SELECT bh.user_id, bh.billing_period_end, sp.type, sp.duration_months
+                            FROM billing_history bh
+                            INNER JOIN subscription_plans sp ON bh.plan_id = sp.id
+                            WHERE bh.id = ?";
+            $billingStmt = $this->conn->prepare($billingQuery);
+            $billingStmt->execute([$billingId]);
+            $billingInfo = $billingStmt->fetch();
+            
+            if ($billingInfo) {
+                // Calculate next payment date
+                $nextPaymentDate = date('Y-m-d H:i:s', strtotime($billingInfo['billing_period_end'] . ' +' . $billingInfo['duration_months'] . ' months'));
+                
+                // Update user billing status and next payment date
+                $userQuery = "UPDATE users SET 
+                             billing_status = 'paid',
+                             last_payment_date = ?,
+                             next_payment_date = ?,
+                             updated_at = CURRENT_TIMESTAMP
+                             WHERE id = ?";
+                
+                $userStmt = $this->conn->prepare($userQuery);
+                $userStmt->execute([$paymentDate, $nextPaymentDate, $billingInfo['user_id']]);
+                
+                // Create next billing period record
+                $nextBillingStart = $billingInfo['billing_period_end'];
+                $nextBillingEnd = date('Y-m-d', strtotime($nextPaymentDate . ' -1 day'));
+                
+                // Get plan price for next billing period
+                $planQuery = "SELECT id, price FROM subscription_plans WHERE type = ?";
+                $planStmt = $this->conn->prepare($planQuery);
+                $planStmt->execute([$billingInfo['type']]);
+                $plan = $planStmt->fetch();
+                
+                if ($plan && $plan['price'] > 0) {
+                    $nextBillingQuery = "INSERT INTO billing_history (user_id, plan_id, amount, billing_period_start, billing_period_end, payment_status) 
+                                        VALUES (?, ?, ?, ?, ?, 'pending')";
+                    $nextBillingStmt = $this->conn->prepare($nextBillingQuery);
+                    $nextBillingStmt->execute([
+                        $billingInfo['user_id'], 
+                        $plan['id'], 
+                        $plan['price'], 
+                        $nextBillingStart, 
+                        $nextBillingEnd
+                    ]);
+                }
+            }
+            
+            $this->conn->commit();
+            return true;
+            
+        } catch (Exception $e) {
+            $this->conn->rollback();
+            throw $e;
+        }
+    }
+    
+    /**
      * Get financial dashboard data for SuperAdmin
      */
     public function getFinancialStats() {
