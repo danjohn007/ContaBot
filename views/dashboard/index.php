@@ -222,94 +222,305 @@
 </div>
 
 <script>
-// Monthly Chart
-const monthlyData = <?php echo json_encode($monthly_data); ?>;
-
-const ctx = document.getElementById('monthlyChart').getContext('2d');
-const monthlyChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: monthlyData.labels,
-        datasets: [{
-            label: 'Ingresos',
-            data: monthlyData.income,
-            borderColor: '#28a745',
-            backgroundColor: 'rgba(40, 167, 69, 0.1)',
-            tension: 0.1,
-            fill: true
-        }, {
-            label: 'Gastos',
-            data: monthlyData.expenses,
-            borderColor: '#dc3545',
-            backgroundColor: 'rgba(220, 53, 69, 0.1)',
-            tension: 0.1,
-            fill: true
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value, index, values) {
-                        return '$' + value.toLocaleString();
-                    }
-                }
-            }
-        },
-        plugins: {
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
-                    }
-                }
-            }
-        }
-    }
-});
-
-// Category Chart
-const categoryData = <?php echo json_encode($category_data); ?>;
-
-if (categoryData.labels && categoryData.labels.length > 0) {
-    const ctxCategory = document.getElementById('categoryChart').getContext('2d');
-    const categoryChart = new Chart(ctxCategory, {
-        type: 'doughnut',
-        data: {
-            labels: categoryData.labels,
-            datasets: [{
-                data: categoryData.data,
-                backgroundColor: categoryData.colors,
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 20,
-                        usePointStyle: true
-                    }
+// Chart initialization with fallback
+function initializeCharts() {
+    // Monthly Chart
+    const monthlyData = <?php echo json_encode($monthly_data); ?>;
+    
+    try {
+        if (typeof Chart !== 'undefined') {
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            const monthlyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.labels,
+                    datasets: [{
+                        label: 'Ingresos',
+                        data: monthlyData.income,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }, {
+                        label: 'Gastos',
+                        data: monthlyData.expenses,
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return context.label + ': $' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                                }
+                            }
                         }
                     }
                 }
-            }
+            });
+        } else {
+            // Fallback when Chart.js is not available
+            createFallbackLineChart('monthlyChart', monthlyData);
         }
-    });
+    } catch (error) {
+        console.log('Chart.js fallback for monthly chart');
+        createFallbackLineChart('monthlyChart', monthlyData);
+    }
+    
+    // Category Chart
+    const categoryData = <?php echo json_encode($category_data); ?>;
+    
+    if (categoryData.labels && categoryData.labels.length > 0) {
+        try {
+            if (typeof Chart !== 'undefined') {
+                const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+                const categoryChart = new Chart(ctxCategory, {
+                    type: 'doughnut',
+                    data: {
+                        labels: categoryData.labels,
+                        datasets: [{
+                            data: categoryData.data,
+                            colors: categoryData.colors,
+                            backgroundColor: categoryData.colors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.label + ': $' + context.raw.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                createFallbackDoughnutChart('categoryChart', categoryData);
+            }
+        } catch (error) {
+            console.log('Chart.js fallback for category chart');
+            createFallbackDoughnutChart('categoryChart', categoryData);
+        }
+    }
+}
+
+// Fallback chart functions
+function createFallbackLineChart(canvasId, data) {
+    const canvas = document.getElementById(canvasId);
+    const container = canvas.parentElement;
+    
+    const chartDiv = document.createElement('div');
+    chartDiv.className = 'chart-fallback';
+    chartDiv.style.cssText = `
+        width: 100%; 
+        height: 400px; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: center; 
+        align-items: center;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 8px;
+        border: 2px solid #dee2e6;
+        font-family: 'Segoe UI', sans-serif;
+        padding: 20px;
+    `;
+    
+    if (data.labels && data.labels.length > 0) {
+        // Title
+        const title = document.createElement('h6');
+        title.textContent = 'Ingresos vs Gastos (Últimos 12 meses)';
+        title.style.cssText = 'color: #495057; margin-bottom: 20px; font-weight: 600; text-align: center;';
+        chartDiv.appendChild(title);
+        
+        // Chart area
+        const chartArea = document.createElement('div');
+        chartArea.style.cssText = 'width: 100%; background: white; border-radius: 6px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
+        
+        // Legend
+        const legend = document.createElement('div');
+        legend.style.cssText = 'display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;';
+        
+        const datasets = [
+            { label: 'Ingresos', data: data.income, color: '#28a745' },
+            { label: 'Gastos', data: data.expenses, color: '#dc3545' }
+        ];
+        
+        datasets.forEach(dataset => {
+            const legendItem = document.createElement('div');
+            legendItem.style.cssText = 'display: flex; align-items: center; gap: 8px; font-size: 14px;';
+            
+            const colorBox = document.createElement('div');
+            colorBox.style.cssText = `width: 16px; height: 16px; background: ${dataset.color}; border-radius: 2px;`;
+            
+            const label = document.createElement('span');
+            label.textContent = dataset.label;
+            label.style.fontWeight = '500';
+            
+            legendItem.appendChild(colorBox);
+            legendItem.appendChild(label);
+            legend.appendChild(legendItem);
+        });
+        
+        chartArea.appendChild(legend);
+        
+        // Simple bar representation
+        const barsContainer = document.createElement('div');
+        barsContainer.style.cssText = 'display: flex; align-items: end; height: 200px; gap: 3px; padding: 0 10px; overflow-x: auto;';
+        
+        const maxValue = Math.max(...datasets.flatMap(d => d.data));
+        
+        data.labels.forEach((label, index) => {
+            const barGroup = document.createElement('div');
+            barGroup.style.cssText = 'min-width: 60px; display: flex; flex-direction: column; align-items: center; gap: 5px;';
+            
+            const barsWrapper = document.createElement('div');
+            barsWrapper.style.cssText = 'display: flex; gap: 2px; align-items: end; height: 160px;';
+            
+            datasets.forEach(dataset => {
+                const value = dataset.data[index] || 0;
+                const height = maxValue > 0 ? Math.max((value / maxValue) * 150, 3) : 3;
+                
+                const bar = document.createElement('div');
+                bar.style.cssText = `
+                    width: 18px; 
+                    height: ${height}px; 
+                    background: ${dataset.color}; 
+                    border-radius: 2px 2px 0 0;
+                    position: relative;
+                    cursor: pointer;
+                `;
+                bar.title = `${dataset.label}: $${value.toLocaleString()}`;
+                
+                barsWrapper.appendChild(bar);
+            });
+            
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = label;
+            labelDiv.style.cssText = 'font-size: 10px; color: #6c757d; text-align: center; font-weight: 500; max-width: 60px; word-wrap: break-word;';
+            
+            barGroup.appendChild(barsWrapper);
+            barGroup.appendChild(labelDiv);
+            barsContainer.appendChild(barGroup);
+        });
+        
+        chartArea.appendChild(barsContainer);
+        chartDiv.appendChild(chartArea);
+    } else {
+        const noData = document.createElement('div');
+        noData.textContent = 'No hay datos para mostrar';
+        noData.style.cssText = 'color: #6c757d; font-style: italic;';
+        chartDiv.appendChild(noData);
+    }
+    
+    canvas.style.display = 'none';
+    container.appendChild(chartDiv);
+}
+
+function createFallbackDoughnutChart(canvasId, data) {
+    const canvas = document.getElementById(canvasId);
+    const container = canvas.parentElement;
+    
+    const chartDiv = document.createElement('div');
+    chartDiv.className = 'chart-fallback';
+    chartDiv.style.cssText = `
+        width: 100%; 
+        height: 400px; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: center; 
+        align-items: center;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 8px;
+        border: 2px solid #dee2e6;
+        font-family: 'Segoe UI', sans-serif;
+        padding: 20px;
+    `;
+    
+    if (data.labels && data.labels.length > 0) {
+        // Title
+        const title = document.createElement('h6');
+        title.textContent = 'Gastos por Categoría (Mes Actual)';
+        title.style.cssText = 'color: #495057; margin-bottom: 20px; font-weight: 600; text-align: center;';
+        chartDiv.appendChild(title);
+        
+        // Chart area
+        const chartArea = document.createElement('div');
+        chartArea.style.cssText = 'width: 100%; background: white; border-radius: 6px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
+        
+        // Legend as list
+        const legend = document.createElement('div');
+        legend.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; width: 100%;';
+        
+        data.labels.forEach((label, index) => {
+            const value = data.data[index];
+            const color = data.colors ? data.colors[index] : '#007bff';
+            
+            const legendItem = document.createElement('div');
+            legendItem.style.cssText = 'display: flex; align-items: center; gap: 12px; font-size: 14px; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid ' + color + ';';
+            
+            const colorBox = document.createElement('div');
+            colorBox.style.cssText = `width: 20px; height: 20px; background: ${color}; border-radius: 50%; flex-shrink: 0;`;
+            
+            const labelText = document.createElement('span');
+            labelText.textContent = label;
+            labelText.style.cssText = 'font-weight: 500; flex-grow: 1;';
+            
+            const valueText = document.createElement('span');
+            valueText.textContent = `$${value.toLocaleString()}`;
+            valueText.style.cssText = 'color: #495057; font-weight: 600; font-size: 16px;';
+            
+            legendItem.appendChild(colorBox);
+            legendItem.appendChild(labelText);
+            legendItem.appendChild(valueText);
+            legend.appendChild(legendItem);
+        });
+        
+        chartArea.appendChild(legend);
+        chartDiv.appendChild(chartArea);
+    } else {
+        const noData = document.createElement('div');
+        noData.textContent = 'No hay datos para mostrar';
+        noData.style.cssText = 'color: #6c757d; font-style: italic;';
+        chartDiv.appendChild(noData);
+    }
+    
+    canvas.style.display = 'none';
+    container.appendChild(chartDiv);
+}
+
+// Initialize charts when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeCharts);
+} else {
+    initializeCharts();
 }
 </script>
 
@@ -329,5 +540,8 @@ if (categoryData.labels && categoryData.labels.length > 0) {
 .chart-area {
     position: relative;
     height: 300px;
+}
+.chart-fallback {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 </style>

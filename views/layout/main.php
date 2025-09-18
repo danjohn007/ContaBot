@@ -69,6 +69,43 @@
                                 Dashboard
                             </a>
                         </li>
+                        
+                        <?php if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'superadmin'): ?>
+                        <!-- SuperAdmin Menu -->
+                        <li class="nav-item mt-3">
+                            <div class="text-white-50 small text-uppercase px-3 mb-2">SuperAdmin</div>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'superadmin') !== false ? 'active' : ''; ?>" 
+                               href="<?php echo BASE_URL; ?>superadmin">
+                                <i class="fas fa-crown me-2"></i>
+                                Panel Admin
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>superadmin/pending-users">
+                                <i class="fas fa-user-clock me-2"></i>
+                                Usuarios Pendientes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>superadmin/financial">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Dashboard Financiero
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>superadmin/users">
+                                <i class="fas fa-users me-2"></i>
+                                Gestionar Usuarios
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item mt-3">
+                            <div class="text-white-50 small text-uppercase px-3 mb-2">Usuario Regular</div>
+                        </li>
+                        <?php endif; ?>
+                        
                         <li class="nav-item">
                             <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'movements') !== false ? 'active' : ''; ?>" 
                                href="<?php echo BASE_URL; ?>movements">
@@ -173,6 +210,173 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Fallback Chart.js implementation for when CDN is blocked
+        if (typeof Chart === 'undefined') {
+            window.Chart = function(ctx, config) {
+                const canvas = ctx.canvas || ctx;
+                const container = canvas.parentElement;
+                
+                // Create fallback chart visualization
+                const chartDiv = document.createElement('div');
+                chartDiv.className = 'chart-fallback';
+                chartDiv.style.cssText = `
+                    width: 100%; 
+                    height: 400px; 
+                    display: flex; 
+                    flex-direction: column; 
+                    justify-content: center; 
+                    align-items: center;
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    border-radius: 8px;
+                    border: 2px solid #dee2e6;
+                    font-family: 'Segoe UI', sans-serif;
+                `;
+                
+                if (config.type === 'line') {
+                    this.createLineChart(chartDiv, config);
+                } else if (config.type === 'doughnut') {
+                    this.createDoughnutChart(chartDiv, config);
+                }
+                
+                canvas.style.display = 'none';
+                container.appendChild(chartDiv);
+                
+                return this;
+            };
+            
+            Chart.prototype.createLineChart = function(container, config) {
+                const data = config.data;
+                const title = document.createElement('h6');
+                title.textContent = 'Ingresos vs Gastos (Últimos 12 meses)';
+                title.style.cssText = 'color: #495057; margin-bottom: 20px; font-weight: 600;';
+                container.appendChild(title);
+                
+                if (data.labels && data.labels.length > 0) {
+                    const chartArea = document.createElement('div');
+                    chartArea.style.cssText = 'width: 90%; height: 300px; position: relative; background: white; border-radius: 6px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
+                    
+                    // Create legend
+                    const legend = document.createElement('div');
+                    legend.style.cssText = 'display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;';
+                    
+                    data.datasets.forEach(dataset => {
+                        const legendItem = document.createElement('div');
+                        legendItem.style.cssText = 'display: flex; align-items: center; gap: 8px; font-size: 14px;';
+                        
+                        const colorBox = document.createElement('div');
+                        colorBox.style.cssText = `width: 16px; height: 16px; background: ${dataset.borderColor}; border-radius: 2px;`;
+                        
+                        const label = document.createElement('span');
+                        label.textContent = dataset.label;
+                        label.style.fontWeight = '500';
+                        
+                        legendItem.appendChild(colorBox);
+                        legendItem.appendChild(label);
+                        legend.appendChild(legendItem);
+                    });
+                    
+                    chartArea.appendChild(legend);
+                    
+                    // Create simple bar representation
+                    const barsContainer = document.createElement('div');
+                    barsContainer.style.cssText = 'display: flex; align-items: end; height: 200px; gap: 5px; padding: 0 10px;';
+                    
+                    data.labels.forEach((label, index) => {
+                        const barGroup = document.createElement('div');
+                        barGroup.style.cssText = 'flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;';
+                        
+                        const barsWrapper = document.createElement('div');
+                        barsWrapper.style.cssText = 'display: flex; gap: 2px; align-items: end; height: 160px;';
+                        
+                        data.datasets.forEach(dataset => {
+                            const value = dataset.data[index] || 0;
+                            const maxValue = Math.max(...data.datasets.flatMap(d => d.data));
+                            const height = Math.max((value / maxValue) * 150, 5);
+                            
+                            const bar = document.createElement('div');
+                            bar.style.cssText = `
+                                width: 20px; 
+                                height: ${height}px; 
+                                background: ${dataset.borderColor}; 
+                                border-radius: 2px 2px 0 0;
+                                position: relative;
+                                cursor: pointer;
+                            `;
+                            bar.title = `${dataset.label}: $${value.toLocaleString()}`;
+                            
+                            barsWrapper.appendChild(bar);
+                        });
+                        
+                        const labelDiv = document.createElement('div');
+                        labelDiv.textContent = label;
+                        labelDiv.style.cssText = 'font-size: 11px; color: #6c757d; text-align: center; font-weight: 500;';
+                        
+                        barGroup.appendChild(barsWrapper);
+                        barGroup.appendChild(labelDiv);
+                        barsContainer.appendChild(barGroup);
+                    });
+                    
+                    chartArea.appendChild(barsContainer);
+                    container.appendChild(chartArea);
+                } else {
+                    const noData = document.createElement('div');
+                    noData.textContent = 'No hay datos para mostrar';
+                    noData.style.cssText = 'color: #6c757d; font-style: italic;';
+                    container.appendChild(noData);
+                }
+            };
+            
+            Chart.prototype.createDoughnutChart = function(container, config) {
+                const data = config.data;
+                const title = document.createElement('h6');
+                title.textContent = 'Gastos por Categoría (Mes Actual)';
+                title.style.cssText = 'color: #495057; margin-bottom: 20px; font-weight: 600;';
+                container.appendChild(title);
+                
+                if (data.labels && data.labels.length > 0) {
+                    const chartArea = document.createElement('div');
+                    chartArea.style.cssText = 'width: 90%; display: flex; flex-direction: column; align-items: center; background: white; border-radius: 6px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
+                    
+                    // Create legend
+                    const legend = document.createElement('div');
+                    legend.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; width: 100%;';
+                    
+                    data.labels.forEach((label, index) => {
+                        const value = data.datasets[0].data[index];
+                        const color = data.datasets[0].colors ? data.datasets[0].colors[index] : '#007bff';
+                        
+                        const legendItem = document.createElement('div');
+                        legendItem.style.cssText = 'display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 8px; background: #f8f9fa; border-radius: 4px;';
+                        
+                        const colorBox = document.createElement('div');
+                        colorBox.style.cssText = `width: 16px; height: 16px; background: ${color}; border-radius: 50%;`;
+                        
+                        const labelText = document.createElement('span');
+                        labelText.textContent = label;
+                        labelText.style.fontWeight = '500';
+                        
+                        const valueText = document.createElement('span');
+                        valueText.textContent = `$${value.toLocaleString()}`;
+                        valueText.style.cssText = 'margin-left: auto; color: #495057; font-weight: 600;';
+                        
+                        legendItem.appendChild(colorBox);
+                        legendItem.appendChild(labelText);
+                        legendItem.appendChild(valueText);
+                        legend.appendChild(legendItem);
+                    });
+                    
+                    chartArea.appendChild(legend);
+                    container.appendChild(chartArea);
+                } else {
+                    const noData = document.createElement('div');
+                    noData.textContent = 'No hay datos para mostrar';
+                    noData.style.cssText = 'color: #6c757d; font-style: italic;';
+                    container.appendChild(noData);
+                }
+            };
+        }
+    </script>
     <script src="<?php echo BASE_URL; ?>assets/js/app.js"></script>
 </body>
 </html>

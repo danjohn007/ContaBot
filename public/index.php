@@ -39,7 +39,8 @@ $routes = [
     'movements' => 'MovementController',
     'categories' => 'CategoryController',
     'reports' => 'ReportController',
-    'test' => 'TestController'
+    'test' => 'TestController',
+    'superadmin' => 'SuperAdminController'
 ];
 
 // Get controller class name
