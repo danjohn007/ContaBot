@@ -40,6 +40,7 @@ $routes = [
     'categories' => 'CategoryController',
     'reports' => 'ReportController',
     'earnings' => 'EarningsController',
+    'account' => 'AccountController',
     'test' => 'TestController',
     'superadmin' => 'SuperAdminController'
 ];

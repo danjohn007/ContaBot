@@ -168,7 +168,9 @@ class Referral {
                  ORDER BY rr.registered_at DESC 
                  LIMIT ? OFFSET ?";
         $stmt = $this->conn->prepare($query);
-        $stmt->execute([$limit, $offset]);
+        $stmt->bindValue(1, (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(2, (int)$offset, PDO::PARAM_INT);
+        $stmt->execute();
         
         return $stmt->fetchAll();
     }

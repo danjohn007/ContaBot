@@ -14,12 +14,12 @@ class UserAccount {
     /**
      * Add a child user to a parent account
      */
-    public function addChildUser($parentUserId, $childUserId, $accessLevel = 'basic', $canCreateMovements = true, $canViewReports = true) {
-        $query = "INSERT INTO user_accounts (parent_user_id, child_user_id, access_level, can_create_movements, can_view_reports) 
-                 VALUES (?, ?, ?, ?, ?)";
+    public function addChildUser($parentUserId, $childUserId, $accessLevel = 'basic', $canCreateMovements = true, $canViewReports = true, $canEditMovements = false, $canDeleteMovements = false) {
+        $query = "INSERT INTO user_accounts (parent_user_id, child_user_id, access_level, can_create_movements, can_view_reports, can_edit_movements, can_delete_movements) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
         
-        return $stmt->execute([$parentUserId, $childUserId, $accessLevel, $canCreateMovements, $canViewReports]);
+        return $stmt->execute([$parentUserId, $childUserId, $accessLevel, $canCreateMovements, $canViewReports, $canEditMovements, $canDeleteMovements]);
     }
     
     /**
@@ -62,13 +62,13 @@ class UserAccount {
     /**
      * Update user permissions
      */
-    public function updateUserPermissions($parentUserId, $childUserId, $accessLevel, $canCreateMovements, $canViewReports) {
+    public function updateUserPermissions($parentUserId, $childUserId, $accessLevel, $canCreateMovements, $canViewReports, $canEditMovements = false, $canDeleteMovements = false) {
         $query = "UPDATE user_accounts 
-                 SET access_level = ?, can_create_movements = ?, can_view_reports = ?, updated_at = CURRENT_TIMESTAMP 
+                 SET access_level = ?, can_create_movements = ?, can_view_reports = ?, can_edit_movements = ?, can_delete_movements = ?, updated_at = CURRENT_TIMESTAMP 
                  WHERE parent_user_id = ? AND child_user_id = ?";
         $stmt = $this->conn->prepare($query);
         
-        return $stmt->execute([$accessLevel, $canCreateMovements, $canViewReports, $parentUserId, $childUserId]);
+        return $stmt->execute([$accessLevel, $canCreateMovements, $canViewReports, $canEditMovements, $canDeleteMovements, $parentUserId, $childUserId]);
     }
     
     /**
@@ -110,6 +110,22 @@ class UserAccount {
     public function canViewReports($parentUserId, $childUserId) {
         $permissions = $this->getUserPermissions($parentUserId, $childUserId);
         return $permissions && $permissions['can_view_reports'];
+    }
+    
+    /**
+     * Check if user can edit movements in an account
+     */
+    public function canEditMovements($parentUserId, $childUserId) {
+        $permissions = $this->getUserPermissions($parentUserId, $childUserId);
+        return $permissions && $permissions['can_edit_movements'];
+    }
+    
+    /**
+     * Check if user can delete movements in an account
+     */
+    public function canDeleteMovements($parentUserId, $childUserId) {
+        $permissions = $this->getUserPermissions($parentUserId, $childUserId);
+        return $permissions && $permissions['can_delete_movements'];
     }
 }
 ?>

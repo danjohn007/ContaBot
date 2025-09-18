@@ -98,7 +98,7 @@ class AuthController extends BaseController {
             $password = $this->post('password');
             $confirm_password = $this->post('confirm_password');
             $name = sanitizeInput($this->post('name'));
-            $rfc = sanitizeInput($this->post('rfc'));
+            $phone = sanitizeInput($this->post('phone'));
             $user_type = $this->post('user_type', 'personal');
             $referralCode = sanitizeInput($this->post('ref', ''));
             
@@ -117,6 +117,14 @@ class AuthController extends BaseController {
                 $errors[] = 'El email ya está registrado';
             }
             
+            if (empty($phone)) {
+                $errors[] = 'El número de teléfono es requerido';
+            } elseif (!preg_match('/^[0-9]{10}$/', $phone)) {
+                $errors[] = 'El número de teléfono debe tener exactamente 10 dígitos';
+            } elseif ($this->userModel->phoneExists($phone)) {
+                $errors[] = 'El número de teléfono ya está registrado';
+            }
+            
             if (empty($password)) {
                 $errors[] = 'La contraseña es requerida';
             } elseif (strlen($password) < 6) {
@@ -131,11 +139,6 @@ class AuthController extends BaseController {
                 $errors[] = 'Tipo de usuario inválido';
             }
             
-            // RFC validation (optional but if provided should be valid format)
-            if (!empty($rfc) && !preg_match('/^[A-Z&Ñ]{3,4}[0-9]{6}[A-Z0-9]{3}$/', $rfc)) {
-                $errors[] = 'El RFC no tiene un formato válido';
-            }
-            
             // Validate referral code if provided
             if (!empty($referralCode)) {
                 $referralModel = new Referral($this->db);
@@ -145,7 +148,7 @@ class AuthController extends BaseController {
             }
             
             if (empty($errors)) {
-                if ($this->userModel->create($email, $password, $name, $rfc, $user_type, $referralCode)) {
+                if ($this->userModel->create($email, $password, $name, $phone, $user_type, $referralCode)) {
                     $this->setFlash('success', 'Cuenta creada exitosamente. Tu registro está pendiente de aprobación por un administrador. Te notificaremos cuando tu cuenta esté activa.');
                     $this->redirect('login');
                 } else {
