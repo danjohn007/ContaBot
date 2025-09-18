@@ -76,10 +76,55 @@ class Database {
                     password VARCHAR(255) NOT NULL,
                     name VARCHAR(255) NOT NULL,
                     rfc VARCHAR(13),
-                    user_type VARCHAR(20) DEFAULT 'personal',
+                    user_type VARCHAR(20) DEFAULT 'personal' CHECK(user_type IN ('personal', 'business', 'superadmin')),
+                    account_status VARCHAR(20) DEFAULT 'pending' CHECK(account_status IN ('pending', 'active', 'suspended', 'cancelled')),
+                    subscription_plan VARCHAR(20) DEFAULT NULL CHECK(subscription_plan IN ('monthly', 'annual', 'courtesy')),
+                    subscription_start_date DATETIME DEFAULT NULL,
+                    subscription_end_date DATETIME DEFAULT NULL,
+                    billing_status VARCHAR(20) DEFAULT 'pending' CHECK(billing_status IN ('pending', 'paid', 'overdue', 'cancelled')),
+                    last_payment_date DATETIME DEFAULT NULL,
+                    next_payment_date DATETIME DEFAULT NULL,
+                    approved_by INTEGER DEFAULT NULL,
+                    approved_at DATETIME DEFAULT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    status VARCHAR(20) DEFAULT 'active'
+                    status VARCHAR(20) DEFAULT 'active',
+                    FOREIGN KEY (approved_by) REFERENCES users(id)
+                )
+            ");
+            
+            $pdo->exec("
+                CREATE TABLE subscription_plans (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name VARCHAR(50) NOT NULL,
+                    type VARCHAR(20) NOT NULL CHECK(type IN ('monthly', 'annual', 'courtesy')),
+                    price DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    duration_months INTEGER NOT NULL,
+                    description TEXT,
+                    features JSON,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ");
+            
+            $pdo->exec("
+                CREATE TABLE billing_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    plan_id INTEGER NOT NULL,
+                    amount DECIMAL(10,2) NOT NULL,
+                    billing_period_start DATE NOT NULL,
+                    billing_period_end DATE NOT NULL,
+                    payment_status VARCHAR(20) DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'failed', 'cancelled')),
+                    payment_date DATETIME DEFAULT NULL,
+                    payment_method VARCHAR(50) DEFAULT NULL,
+                    transaction_id VARCHAR(255) DEFAULT NULL,
+                    notes TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (plan_id) REFERENCES subscription_plans(id)
                 )
             ");
             
@@ -116,10 +161,19 @@ class Database {
                 )
             ");
             
-            // Insert test user (password is 'password123')
+            // Insert SuperAdmin user and test user (password is 'password123')
             $pdo->exec("
-                INSERT INTO users (email, password, name, rfc, user_type) VALUES
-                ('test@contabot.com', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Usuario Test', 'TEST010101ABC', 'personal')
+                INSERT INTO users (email, password, name, rfc, user_type, account_status, billing_status) VALUES
+                ('superadmin@contabot.com', '\$2y\$10\$CClHJt6yDwwNNLK8Ap965.870hQ.VPzrhAnLDJaA7d04ZpaAq3kWm', 'Super Administrador', 'ADMIN010101ABC', 'superadmin', 'active', 'paid'),
+                ('test@contabot.com', '\$2y\$10\$CClHJt6yDwwNNLK8Ap965.870hQ.VPzrhAnLDJaA7d04ZpaAq3kWm', 'Usuario Test', 'TEST010101ABC', 'personal', 'pending', 'pending')
+            ");
+            
+            // Insert subscription plans
+            $pdo->exec("
+                INSERT INTO subscription_plans (name, type, price, duration_months, description, features) VALUES
+                ('Plan Mensual', 'monthly', 299.00, 1, 'Acceso completo al sistema por un mes', '[\"Dashboard completo\", \"Movimientos ilimitados\", \"Reportes fiscales\", \"Soporte básico\"]'),
+                ('Plan Anual', 'annual', 2990.00, 12, 'Acceso completo al sistema por un año (2 meses gratis)', '[\"Dashboard completo\", \"Movimientos ilimitados\", \"Reportes fiscales\", \"Soporte prioritario\", \"2 meses gratis\"]'),
+                ('Plan Cortesía', 'courtesy', 0.00, 1, 'Acceso gratuito de cortesía por un mes', '[\"Dashboard básico\", \"Movimientos limitados\", \"Reportes básicos\"]')
             ");
             
             // Insert test categories

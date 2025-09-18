@@ -137,7 +137,7 @@ class AuthController extends BaseController {
             
             if (empty($errors)) {
                 if ($this->userModel->create($email, $password, $name, $rfc, $user_type)) {
-                    $this->setFlash('success', 'Cuenta creada exitosamente. Ahora puedes iniciar sesión.');
+                    $this->setFlash('success', 'Cuenta creada exitosamente. Tu registro está pendiente de aprobación por un administrador. Te notificaremos cuando tu cuenta esté activa.');
                     $this->redirect('login');
                 } else {
                     $errors[] = 'Error al crear la cuenta. Intenta nuevamente.';

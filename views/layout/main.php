@@ -69,6 +69,43 @@
                                 Dashboard
                             </a>
                         </li>
+                        
+                        <?php if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'superadmin'): ?>
+                        <!-- SuperAdmin Menu -->
+                        <li class="nav-item mt-3">
+                            <div class="text-white-50 small text-uppercase px-3 mb-2">SuperAdmin</div>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'superadmin') !== false ? 'active' : ''; ?>" 
+                               href="<?php echo BASE_URL; ?>superadmin">
+                                <i class="fas fa-crown me-2"></i>
+                                Panel Admin
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>superadmin/pending-users">
+                                <i class="fas fa-user-clock me-2"></i>
+                                Usuarios Pendientes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>superadmin/financial">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Dashboard Financiero
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>superadmin/users">
+                                <i class="fas fa-users me-2"></i>
+                                Gestionar Usuarios
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item mt-3">
+                            <div class="text-white-50 small text-uppercase px-3 mb-2">Usuario Regular</div>
+                        </li>
+                        <?php endif; ?>
+                        
                         <li class="nav-item">
                             <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'movements') !== false ? 'active' : ''; ?>" 
                                href="<?php echo BASE_URL; ?>movements">
