@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Registration Module Demo - ContaBot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .nav-link {
+            color: rgba(255,255,255,0.8);
+            transition: all 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 0.375rem;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .demo-badge {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-badge">
+        <span class="badge bg-warning text-dark">DEMO MODE</span>
+    </div>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar p-0">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h4 class="text-white">
+                            <i class="fas fa-calculator me-2"></i>
+                            ContaBot
+                        </h4>
+                        <small class="text-white-50">Sistema Básico Contable</small>
+                    </div>
+                    
+                    <ul class="nav flex-column px-3">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#dashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        
+                        <!-- SuperAdmin Menu -->
+                        <li class="nav-item mt-3">
+                            <div class="text-white-50 small text-uppercase px-3 mb-2">SuperAdmin</div>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#superadmin">
+                                <i class="fas fa-crown me-2"></i>
+                                Panel Admin
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#pending-users">
+                                <i class="fas fa-user-clock me-2"></i>
+                                Usuarios Pendientes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#financial">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Dashboard Financiero
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#users">
+                                <i class="fas fa-users me-2"></i>
+                                Gestionar Usuarios
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#payments">
+                                <i class="fas fa-credit-card me-2"></i>
+                                Registro de Pagos
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">
+                        <i class="fas fa-credit-card me-2 text-success"></i>
+                        Registro de Pagos
+                    </h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <a href="#dashboard" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Alert -->
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Registro de Pagos:</strong> Aquí puedes registrar los pagos recibidos de usuarios aprobados con planes de pago pendientes.
+                </div>
+
+                <!-- Filter Options -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Filtrar por Estado</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="btn-group" role="group">
+                                    <a href="#" class="btn btn-success">
+                                        Usuarios Activos
+                                    </a>
+                                    <a href="#" class="btn btn-outline-danger">
+                                        Suspendidos
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Resumen</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">Total de usuarios: <strong>15</strong></p>
+                                <p class="mb-0">Mostrando página 1 de 1</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Registration Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Usuarios con Pagos Pendientes</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Plan</th>
+                                        <th>Monto Pendiente</th>
+                                        <th>Período de Facturación</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <strong>María González López</strong>
+                                            <br><small class="text-muted">maria@empresa.com</small>
+                                            <br><small class="text-muted">RFC: GOLM750820CD3</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">Plan Mensual</span>
+                                            <br><small class="text-muted">$199.00</small>
+                                        </td>
+                                        <td>
+                                            <span class="text-danger fw-bold">$199.00</span>
+                                        </td>
+                                        <td>
+                                            <small>
+                                                15/01/2024 - 15/02/2024
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">
+                                                Active
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-success" 
+                                                    onclick="registerPayment(1, 'María González López', 199.00)">
+                                                <i class="fas fa-money-bill-wave me-1"></i>
+                                                Registrar Pago
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong>Juan Pérez García</strong>
+                                            <br><small class="text-muted">juan@negocio.com</small>
+                                            <br><small class="text-muted">RFC: PEGJ850315AB2</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">Plan Anual</span>
+                                            <br><small class="text-muted">$1,990.00</small>
+                                        </td>
+                                        <td>
+                                            <span class="text-danger fw-bold">$1,990.00</span>
+                                        </td>
+                                        <td>
+                                            <small>
+                                                01/01/2024 - 01/01/2025
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">
+                                                Active
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-success" 
+                                                    onclick="registerPayment(2, 'Juan Pérez García', 1990.00)">
+                                                <i class="fas fa-money-bill-wave me-1"></i>
+                                                Registrar Pago
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong>Ana Martínez Rodríguez</strong>
+                                            <br><small class="text-muted">ana@consultoria.com</small>
+                                            <br><small class="text-muted">RFC: MARA801205XY1</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">Plan Cortesía</span>
+                                            <br><small class="text-muted">$0.00</small>
+                                        </td>
+                                        <td>
+                                            <span class="text-success">Plan gratuito</span>
+                                        </td>
+                                        <td>
+                                            <small>
+                                                10/01/2024 - 10/01/2025
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">
+                                                Active
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted small">Plan gratuito</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Register Payment Modal -->
+    <div class="modal fade" id="registerPaymentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-money-bill-wave me-2 text-success"></i>
+                        Registrar Pago
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="registerPaymentForm" method="POST" action="#register-payment">
+                    <div class="modal-body">
+                        <input type="hidden" name="billing_id" id="paymentBillingId">
+                        
+                        <div class="alert alert-info">
+                            <strong>Usuario:</strong> <span id="paymentUserName"></span><br>
+                            <strong>Monto:</strong> $<span id="paymentAmount"></span>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="paymentMethod" class="form-label">
+                                        <i class="fas fa-credit-card me-1"></i>
+                                        Método de Pago <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="paymentMethod" name="payment_method" required>
+                                        <option value="">Seleccionar método</option>
+                                        <option value="transfer">Transferencia Bancaria</option>
+                                        <option value="card">Tarjeta de Crédito/Débito</option>
+                                        <option value="paypal">PayPal</option>
+                                        <option value="cash">Efectivo</option>
+                                        <option value="check">Cheque</option>
+                                        <option value="other">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="paymentDate" class="form-label">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        Fecha de Pago <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="datetime-local" class="form-control" id="paymentDate" name="payment_date" 
+                                           value="2024-01-18T14:30" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="transactionId" class="form-label">
+                                <i class="fas fa-hashtag me-1"></i>
+                                ID de Transacción / Referencia
+                            </label>
+                            <input type="text" class="form-control" id="transactionId" name="transaction_id" 
+                                   placeholder="Número de referencia, transferencia, etc.">
+                            <div class="form-text">Opcional: Cualquier referencia o ID de la transacción</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="paymentNotes" class="form-label">
+                                <i class="fas fa-sticky-note me-1"></i>
+                                Notas Adicionales
+                            </label>
+                            <textarea class="form-control" id="paymentNotes" name="notes" rows="3" 
+                                      placeholder="Cualquier observación adicional sobre el pago"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check me-1"></i>
+                            Registrar Pago
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function registerPayment(billingId, userName, amount) {
+            document.getElementById('paymentBillingId').value = billingId;
+            document.getElementById('paymentUserName').textContent = userName;
+            document.getElementById('paymentAmount').textContent = parseFloat(amount).toFixed(2);
+            
+            // Reset form
+            document.getElementById('registerPaymentForm').reset();
+            document.getElementById('paymentDate').value = new Date().toISOString().slice(0, 16);
+            
+            new bootstrap.Modal(document.getElementById('registerPaymentModal')).show();
+        }
+
+        // Form validation and demo submission
+        document.getElementById('registerPaymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const paymentDate = document.getElementById('paymentDate').value;
+            
+            if (!paymentMethod || !paymentDate) {
+                alert('Por favor complete todos los campos obligatorios.');
+                return false;
+            }
+            
+            // Demo mode - show success message
+            alert('¡Pago registrado exitosamente! En el sistema real, esto actualizaría la base de datos.');
+            bootstrap.Modal.getInstance(document.getElementById('registerPaymentModal')).hide();
+        });
+    </script>
+</body>
+</html>
