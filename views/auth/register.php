@@ -116,6 +116,18 @@
                                 </div>
                             </div>
                             
+                            <?php if (!empty($referral_code)): ?>
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-users me-2"></i>
+                                        <strong>¡Registro por referido!</strong> Has sido invitado a unirte a ContaBot.
+                                    </div>
+                                    <input type="hidden" name="ref" value="<?php echo htmlspecialchars($referral_code); ?>">
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                            
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="fas fa-user-plus me-2"></i>

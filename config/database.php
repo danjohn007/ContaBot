@@ -86,6 +86,7 @@ class Database {
                     next_payment_date DATETIME DEFAULT NULL,
                     approved_by INTEGER DEFAULT NULL,
                     approved_at DATETIME DEFAULT NULL,
+                    referred_by VARCHAR(32) DEFAULT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     status VARCHAR(20) DEFAULT 'active',
@@ -161,6 +162,68 @@ class Database {
                 )
             ");
             
+            // Loyalty system tables
+            $pdo->exec("
+                CREATE TABLE referral_links (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    referral_code VARCHAR(32) UNIQUE NOT NULL,
+                    commission_rate DECIMAL(5,2) DEFAULT 10.00,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            ");
+            
+            $pdo->exec("
+                CREATE TABLE referral_registrations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    referrer_id INTEGER NOT NULL,
+                    referred_user_id INTEGER NOT NULL,
+                    referral_code VARCHAR(32) NOT NULL,
+                    commission_amount DECIMAL(10,2) DEFAULT 0.00,
+                    commission_status VARCHAR(20) DEFAULT 'pending' CHECK(commission_status IN ('pending', 'paid', 'cancelled')),
+                    registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (referrer_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (referred_user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            ");
+            
+            $pdo->exec("
+                CREATE TABLE commission_payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    referral_registration_id INTEGER NOT NULL,
+                    amount DECIMAL(10,2) NOT NULL,
+                    payment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    payment_method VARCHAR(50),
+                    evidence_file VARCHAR(255),
+                    notes TEXT,
+                    created_by INTEGER NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (referral_registration_id) REFERENCES referral_registrations(id) ON DELETE CASCADE,
+                    FOREIGN KEY (created_by) REFERENCES users(id)
+                )
+            ");
+            
+            $pdo->exec("
+                CREATE TABLE user_accounts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    parent_user_id INTEGER NOT NULL,
+                    child_user_id INTEGER NOT NULL,
+                    access_level VARCHAR(20) DEFAULT 'basic' CHECK(access_level IN ('basic', 'full')),
+                    can_create_movements BOOLEAN DEFAULT 1,
+                    can_view_reports BOOLEAN DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (parent_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (child_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    UNIQUE(parent_user_id, child_user_id)
+                )
+            ");
+            
             // Insert SuperAdmin user and test user (password is 'password123')
             $pdo->exec("
                 INSERT INTO users (email, password, name, rfc, user_type, account_status, billing_status) VALUES
@@ -215,6 +278,12 @@ class Database {
             foreach ($movements as $movement) {
                 $stmt->execute($movement);
             }
+            
+            // Insert initial referral links for existing users
+            $pdo->exec("
+                INSERT INTO referral_links (user_id, referral_code, commission_rate) VALUES
+                (1, 'SUPER_" . bin2hex(random_bytes(8)) . "', 10.00)
+            ");
             
         } catch (Exception $e) {
             error_log("Error creating test database: " . $e->getMessage());

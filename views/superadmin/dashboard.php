@@ -16,6 +16,10 @@
                 <i class="fas fa-chart-line me-2"></i>
                 Dashboard Financiero
             </a>
+            <a href="<?php echo BASE_URL; ?>superadmin/loyalty" class="btn btn-primary">
+                <i class="fas fa-users me-2"></i>
+                Sistema de Lealtad
+            </a>
             <a href="<?php echo BASE_URL; ?>superadmin/users" class="btn btn-info">
                 <i class="fas fa-users me-2"></i>
                 Gestionar Usuarios

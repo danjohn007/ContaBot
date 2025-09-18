@@ -101,6 +101,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>superadmin/loyalty">
+                                <i class="fas fa-heart me-2"></i>
+                                Sistema de Lealtad
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="<?php echo BASE_URL; ?>superadmin/payments">
                                 <i class="fas fa-credit-card me-2"></i>
                                 Registro de Pagos
@@ -131,6 +137,13 @@
                                href="<?php echo BASE_URL; ?>reports">
                                 <i class="fas fa-chart-pie me-2"></i>
                                 Reportes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'earnings') !== false ? 'active' : ''; ?>" 
+                               href="<?php echo BASE_URL; ?>earnings">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Mis Ganancias
                             </a>
                         </li>
                         <li class="nav-item">

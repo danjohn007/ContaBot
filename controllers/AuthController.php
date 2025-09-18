@@ -100,6 +100,7 @@ class AuthController extends BaseController {
             $name = sanitizeInput($this->post('name'));
             $rfc = sanitizeInput($this->post('rfc'));
             $user_type = $this->post('user_type', 'personal');
+            $referralCode = sanitizeInput($this->post('ref', ''));
             
             // Validation
             $errors = [];
@@ -135,8 +136,16 @@ class AuthController extends BaseController {
                 $errors[] = 'El RFC no tiene un formato válido';
             }
             
+            // Validate referral code if provided
+            if (!empty($referralCode)) {
+                $referralModel = new Referral($this->db);
+                if (!$referralModel->getReferralLinkByCode($referralCode)) {
+                    $errors[] = 'Código de referido inválido';
+                }
+            }
+            
             if (empty($errors)) {
-                if ($this->userModel->create($email, $password, $name, $rfc, $user_type)) {
+                if ($this->userModel->create($email, $password, $name, $rfc, $user_type, $referralCode)) {
                     $this->setFlash('success', 'Cuenta creada exitosamente. Tu registro está pendiente de aprobación por un administrador. Te notificaremos cuando tu cuenta esté activa.');
                     $this->redirect('login');
                 } else {
@@ -151,7 +160,8 @@ class AuthController extends BaseController {
         
         $data = [
             'title' => 'Registrarse - ContaBot',
-            'flash' => $this->getFlash()
+            'flash' => $this->getFlash(),
+            'referral_code' => $this->get('ref', '')
         ];
         
         $this->view('auth/register', $data);

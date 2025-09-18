@@ -25,13 +25,29 @@ class User {
     /**
      * Create a new user
      */
-    public function create($email, $password, $name, $rfc = null, $user_type = 'personal') {
-        $query = "INSERT INTO users (email, password, name, rfc, user_type, account_status, billing_status) VALUES (?, ?, ?, ?, ?, 'pending', 'pending')";
+    public function create($email, $password, $name, $rfc = null, $user_type = 'personal', $referralCode = null) {
+        $query = "INSERT INTO users (email, password, name, rfc, user_type, account_status, billing_status, referred_by) VALUES (?, ?, ?, ?, ?, 'pending', 'pending', ?)";
         $stmt = $this->conn->prepare($query);
         
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
-        return $stmt->execute([$email, $hashed_password, $name, $rfc, $user_type]);
+        if ($stmt->execute([$email, $hashed_password, $name, $rfc, $user_type, $referralCode])) {
+            $userId = $this->conn->lastInsertId();
+            
+            // If there's a referral code, register the referral
+            if ($referralCode) {
+                $referralModel = new Referral($this->conn);
+                $referralModel->registerReferral($referralCode, $userId);
+            }
+            
+            // Generate referral link for the new user
+            $referralModel = new Referral($this->conn);
+            $referralModel->generateReferralLink($userId);
+            
+            return true;
+        }
+        
+        return false;
     }
     
     /**
