@@ -338,5 +338,139 @@ class Movement {
         
         return $stmt->execute([$isBilled, $id, $userId]);
     }
+    
+    /**
+     * Check if user can edit a specific movement
+     */
+    public function canUserEditMovement($movementId, $currentUserId) {
+        // Check if user owns the movement
+        $query = "SELECT user_id FROM movements WHERE id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([$movementId]);
+        $movement = $stmt->fetch();
+        
+        if (!$movement) {
+            return false;
+        }
+        
+        // If user owns the movement, they can edit it
+        if ($movement['user_id'] == $currentUserId) {
+            return true;
+        }
+        
+        // Check if current user has edit permissions on the movement owner's account
+        $userAccountModel = new UserAccount($this->conn);
+        return $userAccountModel->canEditMovements($movement['user_id'], $currentUserId);
+    }
+    
+    /**
+     * Check if user can delete a specific movement
+     */
+    public function canUserDeleteMovement($movementId, $currentUserId) {
+        // Check if user owns the movement
+        $query = "SELECT user_id FROM movements WHERE id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([$movementId]);
+        $movement = $stmt->fetch();
+        
+        if (!$movement) {
+            return false;
+        }
+        
+        // If user owns the movement, they can delete it
+        if ($movement['user_id'] == $currentUserId) {
+            return true;
+        }
+        
+        // Check if current user has delete permissions on the movement owner's account
+        $userAccountModel = new UserAccount($this->conn);
+        return $userAccountModel->canDeleteMovements($movement['user_id'], $currentUserId);
+    }
+    
+    /**
+     * Check if user can create movements for a specific user
+     */
+    public function canUserCreateMovementFor($targetUserId, $currentUserId) {
+        // If creating for themselves, always allowed
+        if ($targetUserId == $currentUserId) {
+            return true;
+        }
+        
+        // Check if current user has create permissions on the target user's account
+        $userAccountModel = new UserAccount($this->conn);
+        return $userAccountModel->canCreateMovements($targetUserId, $currentUserId);
+    }
+    
+    /**
+     * Get movements that a user can access (own movements + movements from accounts they have access to)
+     */
+    public function getAccessibleMovements($userId, $filters = [], $page = 1, $limit = 20) {
+        $offset = ($page - 1) * $limit;
+        
+        $query = "SELECT DISTINCT m.*, c.name as category_name, c.color as category_color, u.name as owner_name
+                  FROM movements m
+                  LEFT JOIN categories c ON m.category_id = c.id
+                  LEFT JOIN users u ON m.user_id = u.id
+                  WHERE (m.user_id = ? OR m.user_id IN (
+                      SELECT parent_user_id FROM user_accounts WHERE child_user_id = ?
+                  ))";
+        
+        $params = [$userId, $userId];
+        
+        // Apply filters
+        if (!empty($filters['date_from'])) {
+            $query .= " AND m.movement_date >= ?";
+            $params[] = $filters['date_from'];
+        }
+        
+        if (!empty($filters['date_to'])) {
+            $query .= " AND m.movement_date <= ?";
+            $params[] = $filters['date_to'];
+        }
+        
+        if (!empty($filters['type'])) {
+            $query .= " AND m.type = ?";
+            $params[] = $filters['type'];
+        }
+        
+        if (!empty($filters['category_id'])) {
+            $query .= " AND m.category_id = ?";
+            $params[] = $filters['category_id'];
+        }
+        
+        if (!empty($filters['classification'])) {
+            $query .= " AND m.classification = ?";
+            $params[] = $filters['classification'];
+        }
+        
+        if (isset($filters['is_billed'])) {
+            $query .= " AND m.is_billed = ?";
+            $params[] = $filters['is_billed'] ? 1 : 0;
+        }
+        
+        if (!empty($filters['search'])) {
+            $query .= " AND (m.concept LIKE ? OR m.description LIKE ?)";
+            $searchTerm = '%' . $filters['search'] . '%';
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        $query .= " ORDER BY m.movement_date DESC, m.created_at DESC LIMIT ? OFFSET ?";
+        
+        $stmt = $this->conn->prepare($query);
+        
+        // Bind all parameters except LIMIT/OFFSET
+        for ($i = 0; $i < count($params); $i++) {
+            $stmt->bindValue($i + 1, $params[$i]);
+        }
+        
+        // Bind LIMIT and OFFSET as integers
+        $stmt->bindValue(count($params) + 1, (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+        
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
+    }
 }
 ?>

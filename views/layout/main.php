@@ -147,6 +147,13 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'account') !== false ? 'active' : ''; ?>" 
+                               href="<?php echo BASE_URL; ?>account">
+                                <i class="fas fa-users-cog me-2"></i>
+                                Gestión de Cuenta
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'profile') !== false ? 'active' : ''; ?>" 
                                href="<?php echo BASE_URL; ?>profile">
                                 <i class="fas fa-user me-2"></i>
