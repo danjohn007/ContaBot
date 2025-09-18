@@ -80,7 +80,13 @@ $controller = new $controllerClass();
 // Check if method exists
 $method = $action;
 if (!method_exists($controller, $method)) {
-    $method = 'index';
+    // Try converting hyphenated action to camelCase
+    $camelCaseMethod = lcfirst(str_replace('-', '', ucwords($action, '-')));
+    if (method_exists($controller, $camelCaseMethod)) {
+        $method = $camelCaseMethod;
+    } else {
+        $method = 'index';
+    }
 }
 
 // Call the controller method

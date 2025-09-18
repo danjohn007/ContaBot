@@ -23,6 +23,33 @@ class SuperAdminController extends BaseController {
     }
     
     /**
+     * Get database-compatible date format function
+     */
+    private function getDateFormatFilter($column, $format) {
+        // Check if we're using SQLite
+        if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            // SQLite uses strftime
+            return "strftime('$format', $column)";
+        } else {
+            // MySQL uses DATE_FORMAT
+            return "DATE_FORMAT($column, '$format')";
+        }
+    }
+    
+    /**
+     * Get database-compatible date subtraction
+     */
+    private function getDateSubtractFilter($months) {
+        if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            // SQLite date subtraction
+            return "date('now', '-$months months')";
+        } else {
+            // MySQL date subtraction
+            return "DATE_SUB(CURDATE(), INTERVAL $months MONTH)";
+        }
+    }
+    
+    /**
      * SuperAdmin Dashboard
      */
     public function index() {
@@ -120,15 +147,18 @@ class SuperAdminController extends BaseController {
     public function financial() {
         $stats = $this->userModel->getFinancialStats();
         
-        // Get revenue by month (last 12 months)
+        // Get revenue by month (last 12 months) - using database-agnostic functions
+        $dateFormat = $this->getDateFormatFilter('payment_date', '%Y-%m');
+        $dateSubtract = $this->getDateSubtractFilter(12);
+        
         $revenueQuery = "SELECT 
-                        strftime('%Y-%m', payment_date) as month,
+                        $dateFormat as month,
                         SUM(amount) as revenue,
                         COUNT(*) as payments
                         FROM billing_history 
                         WHERE payment_status = 'paid' 
-                        AND payment_date >= date('now', '-12 months')
-                        GROUP BY strftime('%Y-%m', payment_date)
+                        AND payment_date >= $dateSubtract
+                        GROUP BY $dateFormat
                         ORDER BY month";
         
         $revenueStmt = $this->db->prepare($revenueQuery);
