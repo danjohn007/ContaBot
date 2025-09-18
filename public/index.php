@@ -8,7 +8,15 @@
 require_once '../config/config.php';
 
 // Get the URL from the request
-$url = isset($_GET['url']) ? $_GET['url'] : '';
+$url = '';
+if (isset($_GET['url'])) {
+    $url = $_GET['url'];
+} else {
+    // For PHP built-in server, parse the REQUEST_URI
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+    $url = trim(parse_url($requestUri, PHP_URL_PATH), '/');
+}
+
 $url = rtrim($url, '/');
 $url = filter_var($url, FILTER_SANITIZE_URL);
 
@@ -36,6 +44,18 @@ $routes = [
 
 // Get controller class name
 $controllerClass = isset($routes[$controllerName]) ? $routes[$controllerName] : 'DashboardController';
+
+// For specific routes, map the route name to the method name
+$methodMappings = [
+    'login' => 'login',
+    'register' => 'register', 
+    'logout' => 'logout'
+];
+
+// If this is a mapped route and action is 'index', use the mapping
+if (isset($methodMappings[$controllerName]) && $action === 'index') {
+    $action = $methodMappings[$controllerName];
+}
 
 // Check if controller file exists
 $controllerFile = '../controllers/' . $controllerClass . '.php';

@@ -14,6 +14,33 @@ class DashboardController extends BaseController {
     }
     
     /**
+     * Get database-compatible date format function
+     */
+    private function getDateFormatFilter($column, $format) {
+        // Check if we're using SQLite
+        if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            // SQLite uses strftime
+            return "strftime('$format', $column)";
+        } else {
+            // MySQL uses DATE_FORMAT
+            return "DATE_FORMAT($column, '$format')";
+        }
+    }
+    
+    /**
+     * Get database-compatible date subtraction
+     */
+    private function getDateSubtractFilter($months) {
+        if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            // SQLite date subtraction
+            return "date('now', '-$months months')";
+        } else {
+            // MySQL date subtraction
+            return "DATE_SUB(CURDATE(), INTERVAL $months MONTH)";
+        }
+    }
+    
+    /**
      * Dashboard main page
      */
     public function index() {
@@ -45,12 +72,13 @@ class DashboardController extends BaseController {
      */
     private function getSummaryData($userId) {
         $currentMonth = date('Y-m');
+        $dateFilter = $this->getDateFormatFilter('movement_date', '%Y-%m');
         
         // Total income this month
         $incomeQuery = "SELECT COALESCE(SUM(amount), 0) as total 
                        FROM movements 
                        WHERE user_id = ? AND type = 'income' 
-                       AND DATE_FORMAT(movement_date, '%Y-%m') = ?";
+                       AND $dateFilter = ?";
         $incomeStmt = $this->db->prepare($incomeQuery);
         $incomeStmt->execute([$userId, $currentMonth]);
         $totalIncome = $incomeStmt->fetch()['total'];
@@ -59,7 +87,7 @@ class DashboardController extends BaseController {
         $expenseQuery = "SELECT COALESCE(SUM(amount), 0) as total 
                         FROM movements 
                         WHERE user_id = ? AND type = 'expense' 
-                        AND DATE_FORMAT(movement_date, '%Y-%m') = ?";
+                        AND $dateFilter = ?";
         $expenseStmt = $this->db->prepare($expenseQuery);
         $expenseStmt->execute([$userId, $currentMonth]);
         $totalExpenses = $expenseStmt->fetch()['total'];
@@ -72,17 +100,17 @@ class DashboardController extends BaseController {
                        FROM movements 
                        WHERE user_id = ? AND type = 'expense' 
                        AND classification = 'fiscal'
-                       AND DATE_FORMAT(movement_date, '%Y-%m') = ?";
+                       AND $dateFilter = ?";
         $fiscalStmt = $this->db->prepare($fiscalQuery);
         $fiscalStmt->execute([$userId, $currentMonth]);
         $fiscalExpenses = $fiscalStmt->fetch()['total'];
         
-        // Pending receipts
+        // Pending receipts (use 0 instead of FALSE for SQLite compatibility)
         $pendingQuery = "SELECT COUNT(*) as total 
                         FROM movements 
                         WHERE user_id = ? AND type = 'expense' 
-                        AND is_billed = FALSE
-                        AND DATE_FORMAT(movement_date, '%Y-%m') = ?";
+                        AND is_billed = 0
+                        AND $dateFilter = ?";
         $pendingStmt = $this->db->prepare($pendingQuery);
         $pendingStmt->execute([$userId, $currentMonth]);
         $pendingReceipts = $pendingStmt->fetch()['total'];
@@ -120,14 +148,19 @@ class DashboardController extends BaseController {
      * Get monthly data for charts
      */
     private function getMonthlyData($userId) {
+        $dateFormatMonth = $this->getDateFormatFilter('movement_date', '%Y-%m');
+        
+        // Use compatible date subtraction
+        $dateSubtract = $this->getDateSubtractFilter(12);
+        
         $query = "SELECT 
-                    DATE_FORMAT(movement_date, '%Y-%m') as month,
+                    $dateFormatMonth as month,
                     type,
                     SUM(amount) as total
                  FROM movements 
                  WHERE user_id = ? 
-                 AND movement_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-                 GROUP BY DATE_FORMAT(movement_date, '%Y-%m'), type
+                 AND movement_date >= $dateSubtract
+                 GROUP BY $dateFormatMonth, type
                  ORDER BY month";
         
         $stmt = $this->db->prepare($query);
@@ -167,12 +200,13 @@ class DashboardController extends BaseController {
      */
     private function getCategoryExpenseData($userId) {
         $currentMonth = date('Y-m');
+        $dateFilter = $this->getDateFormatFilter('m.movement_date', '%Y-%m');
         
         $query = "SELECT c.name, c.color, SUM(m.amount) as total
                  FROM movements m
                  INNER JOIN categories c ON m.category_id = c.id
                  WHERE m.user_id = ? AND m.type = 'expense'
-                 AND DATE_FORMAT(m.movement_date, '%Y-%m') = ?
+                 AND $dateFilter = ?
                  GROUP BY c.id, c.name, c.color
                  ORDER BY total DESC
                  LIMIT 10";

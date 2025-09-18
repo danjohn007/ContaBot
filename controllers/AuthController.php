@@ -161,15 +161,20 @@ class AuthController extends BaseController {
      * Logout user
      */
     public function logout() {
-        // Start session if not already started
+        // Ensure session is started (it should be from config.php but check anyway)
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
+        }
+        
+        // Clear remember cookie first (before clearing session)
+        if (isset($_COOKIE['remember_token'])) {
+            setcookie('remember_token', '', time() - 3600, '/', '', false, true);
         }
         
         // Clear session variables
         $_SESSION = array();
         
-        // Delete session cookie
+        // Delete session cookie if cookies are used
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
             setcookie(session_name(), '', time() - 42000,
@@ -178,14 +183,10 @@ class AuthController extends BaseController {
             );
         }
         
-        // Clear remember cookie
-        if (isset($_COOKIE['remember_token'])) {
-            setcookie('remember_token', '', time() - 3600, '/');
-        }
-        
-        // Destroy session
+        // Destroy the session
         session_destroy();
         
+        // Redirect to login page
         $this->redirect('login');
     }
     
