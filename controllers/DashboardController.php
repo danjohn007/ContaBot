@@ -106,7 +106,10 @@ class DashboardController extends BaseController {
                  LIMIT ?";
         
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$userId, $limit]);
+        $stmt->bindValue(1, $userId);
+        $stmt->bindValue(2, (int)$limit, PDO::PARAM_INT);
+        
+        $stmt->execute();
         
         return $stmt->fetchAll();
     }

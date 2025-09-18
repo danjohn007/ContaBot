@@ -58,11 +58,19 @@ class Movement {
         }
         
         $query .= " ORDER BY m.movement_date DESC, m.created_at DESC LIMIT ? OFFSET ?";
-        $params[] = $limit;
-        $params[] = $offset;
         
         $stmt = $this->conn->prepare($query);
-        $stmt->execute($params);
+        
+        // Bind all parameters except LIMIT/OFFSET
+        for ($i = 0; $i < count($params); $i++) {
+            $stmt->bindValue($i + 1, $params[$i]);
+        }
+        
+        // Bind LIMIT and OFFSET as integers
+        $stmt->bindValue(count($params) + 1, (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
+        
+        $stmt->execute();
         
         return $stmt->fetchAll();
     }
