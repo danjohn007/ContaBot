@@ -100,6 +100,12 @@
                                 Gestionar Usuarios
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>superadmin/payments">
+                                <i class="fas fa-credit-card me-2"></i>
+                                Registro de Pagos
+                            </a>
+                        </li>
                         
                         <li class="nav-item mt-3">
                             <div class="text-white-50 small text-uppercase px-3 mb-2">Usuario Regular</div>

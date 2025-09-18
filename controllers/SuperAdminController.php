@@ -274,6 +274,100 @@ class SuperAdminController extends BaseController {
     }
     
     /**
+     * Payment Registration Module
+     */
+    public function payments() {
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $status = isset($_GET['status']) ? $_GET['status'] : 'active';
+        $limit = 20;
+        $offset = ($page - 1) * $limit;
+        
+        // Get active users with their payment information
+        $whereClause = "WHERE u.account_status = ? AND u.user_type != 'superadmin'";
+        $params = [$status];
+        
+        $query = "SELECT u.*, sp.name as plan_name, sp.price as plan_price,
+                         bh.payment_status, bh.payment_date, bh.amount as pending_amount,
+                         bh.billing_period_start, bh.billing_period_end, bh.id as billing_id
+                 FROM users u
+                 LEFT JOIN subscription_plans sp ON u.subscription_plan = sp.type
+                 LEFT JOIN billing_history bh ON u.id = bh.user_id AND bh.payment_status = 'pending'
+                 $whereClause
+                 ORDER BY u.name ASC
+                 LIMIT ? OFFSET ?";
+        
+        $stmt = $this->db->prepare($query);
+        foreach ($params as $i => $param) {
+            $stmt->bindValue($i + 1, $param);
+        }
+        $stmt->bindValue(count($params) + 1, $limit, PDO::PARAM_INT);
+        $stmt->bindValue(count($params) + 2, $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $users = $stmt->fetchAll();
+        
+        // Get total count
+        $countQuery = "SELECT COUNT(*) as total FROM users u $whereClause";
+        $countStmt = $this->db->prepare($countQuery);
+        foreach ($params as $i => $param) {
+            $countStmt->bindValue($i + 1, $param);
+        }
+        $countStmt->execute();
+        $totalUsers = $countStmt->fetch()['total'];
+        
+        // Get payment methods for the form
+        $paymentMethods = [
+            'transfer' => 'Transferencia Bancaria',
+            'card' => 'Tarjeta de Crédito/Débito',
+            'paypal' => 'PayPal',
+            'cash' => 'Efectivo',
+            'check' => 'Cheque',
+            'other' => 'Otro'
+        ];
+        
+        $data = [
+            'title' => 'Registro de Pagos - SuperAdmin',
+            'users' => $users,
+            'payment_methods' => $paymentMethods,
+            'current_page' => $page,
+            'total_pages' => ceil($totalUsers / $limit),
+            'total_users' => $totalUsers,
+            'current_status' => $status,
+            'flash' => $this->getFlash()
+        ];
+        
+        $this->viewWithLayout('superadmin/payments', $data);
+    }
+    
+    /**
+     * Process Payment Registration
+     */
+    public function registerPayment() {
+        if (!$this->isPost()) {
+            $this->redirect('superadmin/payments');
+        }
+        
+        $billingId = $this->post('billing_id');
+        $paymentMethod = $this->post('payment_method');
+        $transactionId = $this->post('transaction_id');
+        $notes = $this->post('notes');
+        $paymentDate = $this->post('payment_date');
+        
+        if (!$billingId || !$paymentMethod || !$paymentDate) {
+            $this->setFlash('error', 'Todos los campos obligatorios deben ser completados');
+            $this->redirect('superadmin/payments');
+        }
+        
+        try {
+            $this->userModel->registerPayment($billingId, $paymentMethod, $transactionId, $notes, $paymentDate);
+            $this->setFlash('success', 'Pago registrado exitosamente');
+        } catch (Exception $e) {
+            $this->setFlash('error', 'Error al registrar pago: ' . $e->getMessage());
+        }
+        
+        $this->redirect('superadmin/payments');
+    }
+    
+    /**
      * Auto-suspend overdue users (for cron job)
      */
     public function autoSuspend() {
