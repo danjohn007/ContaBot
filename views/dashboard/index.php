@@ -98,7 +98,7 @@
     <div class="col-xl-8 col-lg-7">
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold">Ingresos vs Gastos (Últimos 6 meses)</h6>
+                <h6 class="m-0 font-weight-bold">Ingresos vs Gastos (Últimos 12 meses)</h6>
             </div>
             <div class="card-body">
                 <div class="chart-area">
@@ -108,31 +108,24 @@
         </div>
     </div>
 
-    <!-- Pending Receipts -->
+    <!-- Category Expenses Chart -->
     <div class="col-xl-4 col-lg-5">
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold">Resumen Rápido</h6>
+                <h6 class="m-0 font-weight-bold">Gastos por Categoría (Mes Actual)</h6>
             </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <div class="small text-gray-500">Comprobantes Pendientes</div>
-                    <div class="h5 font-weight-bold"><?php echo $summary['pending_receipts']; ?></div>
+                <?php if (!empty($category_data['labels'])): ?>
+                <div class="chart-pie pt-4">
+                    <canvas id="categoryChart" width="400" height="300"></canvas>
                 </div>
-                <div class="mb-3">
-                    <div class="small text-gray-500">Tipo de Usuario</div>
-                    <div class="h6">
-                        <span class="badge bg-<?php echo $user_type === 'business' ? 'primary' : 'success'; ?>">
-                            <?php echo $user_type === 'business' ? 'Negocio' : 'Personal'; ?>
-                        </span>
-                    </div>
+                <?php else: ?>
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted">No hay gastos este mes</h6>
+                    <p class="text-muted small">Los gastos aparecerán aquí cuando registres movimientos</p>
                 </div>
-                <div class="d-grid">
-                    <a href="<?php echo BASE_URL; ?>reports" class="btn btn-primary">
-                        <i class="fas fa-chart-bar me-2"></i>
-                        Ver Reportes Completos
-                    </a>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -277,6 +270,47 @@ const monthlyChart = new Chart(ctx, {
         }
     }
 });
+
+// Category Chart
+const categoryData = <?php echo json_encode($category_data); ?>;
+
+if (categoryData.labels && categoryData.labels.length > 0) {
+    const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+    const categoryChart = new Chart(ctxCategory, {
+        type: 'doughnut',
+        data: {
+            labels: categoryData.labels,
+            datasets: [{
+                data: categoryData.data,
+                backgroundColor: categoryData.colors,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return context.label + ': $' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
 </script>
 
 <style>

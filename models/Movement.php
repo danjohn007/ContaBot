@@ -50,6 +50,11 @@ class Movement {
             $params[] = $filters['classification'];
         }
         
+        if (isset($filters['is_billed'])) {
+            $query .= " AND m.is_billed = ?";
+            $params[] = $filters['is_billed'] ? 1 : 0;
+        }
+        
         if (!empty($filters['search'])) {
             $query .= " AND (m.concept LIKE ? OR m.description LIKE ?)";
             $searchTerm = '%' . $filters['search'] . '%';
@@ -106,6 +111,11 @@ class Movement {
         if (!empty($filters['classification'])) {
             $query .= " AND m.classification = ?";
             $params[] = $filters['classification'];
+        }
+        
+        if (isset($filters['is_billed'])) {
+            $query .= " AND m.is_billed = ?";
+            $params[] = $filters['is_billed'] ? 1 : 0;
         }
         
         if (!empty($filters['search'])) {
