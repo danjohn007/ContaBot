@@ -12,6 +12,17 @@ class User {
     }
     
     /**
+     * Get database-compatible date function for start of month
+     */
+    private function getStartOfMonthFunction() {
+        if ($this->conn->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            return "date('now', 'start of month')";
+        } else {
+            return "DATE_FORMAT(CURDATE(), '%Y-%m-01')";
+        }
+    }
+    
+    /**
      * Create a new user
      */
     public function create($email, $password, $name, $rfc = null, $user_type = 'personal') {
@@ -205,9 +216,10 @@ class User {
         $stats['pending_users'] = $stmt->fetch()['total'];
         
         // Monthly revenue
+        $startOfMonth = $this->getStartOfMonthFunction();
         $query = "SELECT COALESCE(SUM(amount), 0) as total FROM billing_history 
                  WHERE payment_status = 'paid' 
-                 AND payment_date >= date('now', 'start of month')";
+                 AND payment_date >= $startOfMonth";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         $stats['monthly_revenue'] = $stmt->fetch()['total'];
