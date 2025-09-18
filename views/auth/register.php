@@ -105,14 +105,13 @@
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
-                                    <label for="rfc" class="form-label">RFC (Opcional)</label>
+                                    <label for="phone" class="form-label">Número de WhatsApp</label>
                                     <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-id-card"></i></span>
-                                        <input type="text" class="form-control" id="rfc" name="rfc" 
-                                               placeholder="XAXX010101000" maxlength="13" 
-                                               style="text-transform: uppercase;">
+                                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                        <input type="text" class="form-control" id="phone" name="phone" 
+                                               placeholder="5512345678" maxlength="10" pattern="[0-9]{10}" required>
                                     </div>
-                                    <div class="form-text">Solo si manejas facturas fiscales</div>
+                                    <div class="form-text">Número a 10 dígitos para el ChatBot de WhatsApp</div>
                                 </div>
                             </div>
                             
@@ -153,9 +152,17 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // RFC format validation
-        document.getElementById('rfc').addEventListener('input', function(e) {
-            e.target.value = e.target.value.toUpperCase();
+        // Phone number validation
+        document.getElementById('phone').addEventListener('input', function(e) {
+            // Only allow numbers
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            
+            // Validate 10 digits
+            if (e.target.value.length !== 10) {
+                e.target.setCustomValidity('El número debe tener exactamente 10 dígitos');
+            } else {
+                e.target.setCustomValidity('');
+            }
         });
         
         // Password confirmation validation

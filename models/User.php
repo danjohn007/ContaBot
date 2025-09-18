@@ -25,13 +25,13 @@ class User {
     /**
      * Create a new user
      */
-    public function create($email, $password, $name, $rfc = null, $user_type = 'personal', $referralCode = null) {
-        $query = "INSERT INTO users (email, password, name, rfc, user_type, account_status, billing_status, referred_by) VALUES (?, ?, ?, ?, ?, 'pending', 'pending', ?)";
+    public function create($email, $password, $name, $phone = null, $user_type = 'personal', $referralCode = null) {
+        $query = "INSERT INTO users (email, password, name, phone, user_type, account_status, billing_status, referred_by) VALUES (?, ?, ?, ?, ?, 'pending', 'pending', ?)";
         $stmt = $this->conn->prepare($query);
         
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
-        if ($stmt->execute([$email, $hashed_password, $name, $rfc, $user_type, $referralCode])) {
+        if ($stmt->execute([$email, $hashed_password, $name, $phone, $user_type, $referralCode])) {
             $userId = $this->conn->lastInsertId();
             
             // If there's a referral code, register the referral
@@ -368,6 +368,28 @@ class User {
     public function emailExists($email, $exclude_id = null) {
         $query = "SELECT id FROM users WHERE email = ?";
         $params = [$email];
+        
+        if ($exclude_id) {
+            $query .= " AND id != ?";
+            $params[] = $exclude_id;
+        }
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute($params);
+        
+        return $stmt->fetch() !== false;
+    }
+    
+    /**
+     * Check if phone exists
+     */
+    public function phoneExists($phone, $exclude_id = null) {
+        if (empty($phone)) {
+            return false;
+        }
+        
+        $query = "SELECT id FROM users WHERE phone = ?";
+        $params = [$phone];
         
         if ($exclude_id) {
             $query .= " AND id != ?";
