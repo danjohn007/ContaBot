@@ -6,9 +6,9 @@
 
 class Database {
     private $host = 'localhost';
-    private $db_name = 'contabot_db';
-    private $username = 'root';
-    private $password = '';
+    private $db_name = 'ejercito_contabot';
+    private $username = 'ejercito_contabot';
+    private $password = 'Danjohn007!';
     private $charset = 'utf8mb4';
     private $conn;
 
