@@ -368,6 +368,142 @@ class SuperAdminController extends BaseController {
     }
     
     /**
+     * Loyalty System Management
+     */
+    public function loyalty() {
+        $referralModel = new Referral($this->db);
+        
+        // Get pagination parameters
+        $page = max(1, (int) $this->get('page', 1));
+        $limit = 20;
+        $offset = ($page - 1) * $limit;
+        
+        // Get all referrals with pagination
+        $referrals = $referralModel->getAllReferrals($limit, $offset);
+        
+        // Get summary stats
+        $stats = $this->getReferralStats();
+        
+        $data = [
+            'title' => 'Sistema de Lealtad - SuperAdmin',
+            'referrals' => $referrals,
+            'stats' => $stats,
+            'current_page' => $page,
+            'total_pages' => ceil($stats['total_referrals'] / $limit),
+            'flash' => $this->getFlash()
+        ];
+        
+        $this->viewWithLayout('superadmin/loyalty', $data);
+    }
+    
+    /**
+     * Update commission rate for a user
+     */
+    public function updateCommission() {
+        if (!$this->isPost()) {
+            $this->redirect('superadmin/loyalty');
+        }
+        
+        $userId = $this->post('user_id');
+        $commissionRate = (float) $this->post('commission_rate');
+        
+        if (!$userId || $commissionRate < 0 || $commissionRate > 100) {
+            $this->setFlash('error', 'Datos inválidos para actualizar comisión');
+            $this->redirect('superadmin/loyalty');
+        }
+        
+        try {
+            $referralModel = new Referral($this->db);
+            $referralModel->updateCommissionRate($userId, $commissionRate);
+            $this->setFlash('success', 'Tasa de comisión actualizada exitosamente');
+        } catch (Exception $e) {
+            $this->setFlash('error', 'Error al actualizar comisión: ' . $e->getMessage());
+        }
+        
+        $this->redirect('superadmin/loyalty');
+    }
+    
+    /**
+     * Record commission payment
+     */
+    public function payCommission() {
+        if (!$this->isPost()) {
+            $this->redirect('superadmin/loyalty');
+        }
+        
+        $referralRegistrationId = $this->post('referral_registration_id');
+        $amount = (float) $this->post('amount');
+        $paymentMethod = $this->post('payment_method');
+        $notes = $this->post('notes');
+        
+        // Handle file upload
+        $evidenceFile = null;
+        if (isset($_FILES['evidence_file']) && $_FILES['evidence_file']['error'] === UPLOAD_ERR_OK) {
+            $evidenceFile = $this->handleFileUpload($_FILES['evidence_file'], 'commission_evidence');
+        }
+        
+        if (!$referralRegistrationId || $amount <= 0) {
+            $this->setFlash('error', 'Datos inválidos para registrar pago');
+            $this->redirect('superadmin/loyalty');
+        }
+        
+        try {
+            $referralModel = new Referral($this->db);
+            $referralModel->recordCommissionPayment(
+                $referralRegistrationId, 
+                $amount, 
+                $paymentMethod, 
+                $_SESSION['user_id'],
+                $evidenceFile, 
+                $notes
+            );
+            $this->setFlash('success', 'Pago de comisión registrado exitosamente');
+        } catch (Exception $e) {
+            $this->setFlash('error', 'Error al registrar pago: ' . $e->getMessage());
+        }
+        
+        $this->redirect('superadmin/loyalty');
+    }
+    
+    /**
+     * Get referral system statistics
+     */
+    private function getReferralStats() {
+        $query = "SELECT 
+                    COUNT(*) as total_referrals,
+                    COUNT(DISTINCT referrer_id) as active_referrers,
+                    SUM(commission_amount) as total_commissions,
+                    SUM(CASE WHEN commission_status = 'paid' THEN commission_amount ELSE 0 END) as paid_commissions,
+                    SUM(CASE WHEN commission_status = 'pending' THEN commission_amount ELSE 0 END) as pending_commissions
+                 FROM referral_registrations";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+        
+        return $stmt->fetch();
+    }
+    
+    /**
+     * Handle file upload for commission evidence
+     */
+    private function handleFileUpload($file, $prefix = 'upload') {
+        $uploadDir = UPLOAD_PATH . 'commission_evidence/';
+        
+        // Create directory if it doesn't exist
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        
+        $fileName = $prefix . '_' . time() . '_' . basename($file['name']);
+        $targetPath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+            return 'commission_evidence/' . $fileName;
+        }
+        
+        return null;
+    }
+    
+    /**
      * Auto-suspend overdue users (for cron job)
      */
     public function autoSuspend() {
