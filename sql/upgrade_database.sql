@@ -17,6 +17,8 @@
 -- ALTER TABLE users ADD CONSTRAINT fk_approved_by FOREIGN KEY (approved_by) REFERENCES users(id);
 
 -- For fresh install, recreate tables with new schema:
+-- ContaBot Database Schema Upgrade
+-- Adds SuperAdmin functionality and billing system
 
 DROP TABLE IF EXISTS billing_history;
 DROP TABLE IF EXISTS subscription_plans;
@@ -26,64 +28,64 @@ DROP TABLE IF EXISTS users;
 
 -- Enhanced Users table with billing and subscription support
 CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     rfc VARCHAR(13),
-    user_type VARCHAR(20) DEFAULT 'personal' CHECK(user_type IN ('personal', 'business', 'superadmin')),
-    account_status VARCHAR(20) DEFAULT 'pending' CHECK(account_status IN ('pending', 'active', 'suspended', 'cancelled')),
-    subscription_plan VARCHAR(20) DEFAULT NULL CHECK(subscription_plan IN ('monthly', 'annual', 'courtesy')),
+    user_type VARCHAR(20) DEFAULT 'personal', -- CHECK(user_type IN ('personal', 'business', 'superadmin')),
+    account_status VARCHAR(20) DEFAULT 'pending', -- CHECK(account_status IN ('pending', 'active', 'suspended', 'cancelled')),
+    subscription_plan VARCHAR(20) DEFAULT NULL, -- CHECK(subscription_plan IN ('monthly', 'annual', 'courtesy')),
     subscription_start_date DATETIME DEFAULT NULL,
     subscription_end_date DATETIME DEFAULT NULL,
-    billing_status VARCHAR(20) DEFAULT 'pending' CHECK(billing_status IN ('pending', 'paid', 'overdue', 'cancelled')),
+    billing_status VARCHAR(20) DEFAULT 'pending', -- CHECK(billing_status IN ('pending', 'paid', 'overdue', 'cancelled')),
     last_payment_date DATETIME DEFAULT NULL,
     next_payment_date DATETIME DEFAULT NULL,
-    approved_by INTEGER DEFAULT NULL,
+    approved_by INT DEFAULT NULL,
     approved_at DATETIME DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     status VARCHAR(20) DEFAULT 'active',
     FOREIGN KEY (approved_by) REFERENCES users(id)
 );
 
 -- Subscription Plans table
 CREATE TABLE subscription_plans (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
-    type VARCHAR(20) NOT NULL CHECK(type IN ('monthly', 'annual', 'courtesy')),
+    type VARCHAR(20) NOT NULL, -- CHECK(type IN ('monthly', 'annual', 'courtesy')),
     price DECIMAL(10,2) NOT NULL DEFAULT 0,
-    duration_months INTEGER NOT NULL,
+    duration_months INT NOT NULL,
     description TEXT,
-    features JSON,
-    is_active BOOLEAN DEFAULT 1,
+    features TEXT, -- For MySQL 5.7+ you can use JSON
+    is_active TINYINT(1) DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Billing History table
 CREATE TABLE billing_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    plan_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    plan_id INT NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     billing_period_start DATE NOT NULL,
     billing_period_end DATE NOT NULL,
-    payment_status VARCHAR(20) DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'failed', 'cancelled')),
+    payment_status VARCHAR(20) DEFAULT 'pending', -- CHECK(payment_status IN ('pending', 'paid', 'failed', 'cancelled')),
     payment_date DATETIME DEFAULT NULL,
     payment_method VARCHAR(50) DEFAULT NULL,
     transaction_id VARCHAR(255) DEFAULT NULL,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (plan_id) REFERENCES subscription_plans(id)
 );
 
--- Categories table (unchanged)
+-- Categories table (unchanged except for id type)
 CREATE TABLE categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     color VARCHAR(7) DEFAULT '#007bff',
@@ -91,22 +93,22 @@ CREATE TABLE categories (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Movements table (unchanged)
+-- Movements table (unchanged except for id type and BOOLEAN)
 CREATE TABLE movements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    category_id INTEGER NOT NULL,
-    type VARCHAR(10) NOT NULL CHECK(type IN ('income', 'expense')),
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    category_id INT NOT NULL,
+    type VARCHAR(10) NOT NULL, -- CHECK(type IN ('income', 'expense')),
     amount DECIMAL(10,2) NOT NULL,
     concept VARCHAR(255) NOT NULL,
     description TEXT,
     movement_date DATE NOT NULL,
-    classification VARCHAR(20) NOT NULL CHECK(classification IN ('personal', 'business', 'fiscal', 'non_fiscal')),
-    payment_method VARCHAR(20) DEFAULT 'cash' CHECK(payment_method IN ('cash', 'card', 'transfer', 'check', 'other')),
+    classification VARCHAR(20) NOT NULL, -- CHECK(classification IN ('personal', 'business', 'fiscal', 'non_fiscal')),
+    payment_method VARCHAR(20) DEFAULT 'cash', -- CHECK(payment_method IN ('cash', 'card', 'transfer', 'check', 'other')),
     receipt_file VARCHAR(255),
-    is_billed BOOLEAN DEFAULT 0,
+    is_billed TINYINT(1) DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT
 );
@@ -131,10 +133,10 @@ INSERT INTO categories (user_id, name, description, color) VALUES
 
 -- Insert some test movements for SuperAdmin
 INSERT INTO movements (user_id, category_id, type, amount, concept, description, movement_date, classification, payment_method, is_billed) VALUES
-(1, 4, 'income', 5000.00, 'Suscripciones Mensuales', 'Ingresos por suscripciones del mes actual', date('now', 'start of month'), 'business', 'transfer', 0),
-(1, 1, 'expense', 800.00, 'Hosting y Dominios', 'Gastos de infraestructura mensual', date('now', 'start of month', '+5 days'), 'business', 'card', 0),
-(1, 2, 'expense', 300.00, 'Publicidad Online', 'Campaña de Google Ads', date('now', 'start of month', '+10 days'), 'business', 'card', 0),
-(1, 3, 'expense', 150.00, 'Servicios Cloud', 'AWS y servicios cloud', date('now', 'start of month', '+15 days'), 'business', 'transfer', 0);
+(1, 4, 'income', 5000.00, 'Suscripciones Mensuales', 'Ingresos por suscripciones del mes actual', CURDATE(), 'business', 'transfer', 0),
+(1, 1, 'expense', 800.00, 'Hosting y Dominios', 'Gastos de infraestructura mensual', CURDATE(), 'business', 'card', 0),
+(1, 2, 'expense', 300.00, 'Publicidad Online', 'Campaña de Google Ads', CURDATE(), 'business', 'card', 0),
+(1, 3, 'expense', 150.00, 'Servicios Cloud', 'AWS y servicios cloud', CURDATE(), 'business', 'transfer', 0);
 
 -- Create indexes for better performance
 CREATE INDEX idx_users_email ON users(email);
