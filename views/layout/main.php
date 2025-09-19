@@ -62,14 +62,6 @@
                     </div>
                     
                     <ul class="nav flex-column px-3">
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo basename($_SERVER['REQUEST_URI']) === '' || basename($_SERVER['REQUEST_URI']) === 'dashboard' ? 'active' : ''; ?>" 
-                               href="<?php echo BASE_URL; ?>dashboard">
-                                <i class="fas fa-tachometer-alt me-2"></i>
-                                Dashboard
-                            </a>
-                        </li>
-                        
                         <?php if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'superadmin'): ?>
                         <!-- SuperAdmin Menu -->
                         <li class="nav-item mt-3">
@@ -117,6 +109,14 @@
                             <div class="text-white-50 small text-uppercase px-3 mb-2">Usuario Regular</div>
                         </li>
                         <?php endif; ?>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link <?php echo basename($_SERVER['REQUEST_URI']) === '' || basename($_SERVER['REQUEST_URI']) === 'dashboard' ? 'active' : ''; ?>" 
+                               href="<?php echo BASE_URL; ?>dashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
                         
                         <li class="nav-item">
                             <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'movements') !== false ? 'active' : ''; ?>" 

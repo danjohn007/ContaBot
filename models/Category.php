@@ -116,7 +116,8 @@ class Category {
             ['name' => 'Servicios', 'description' => 'Servicios públicos y suscripciones', 'color' => '#ffc107'],
             ['name' => 'Salud', 'description' => 'Gastos médicos y medicamentos', 'color' => '#dc3545'],
             ['name' => 'Entretenimiento', 'description' => 'Gastos de ocio y entretenimiento', 'color' => '#fd7e14'],
-            ['name' => 'Ingresos', 'description' => 'Ingresos generales', 'color' => '#17a2b8']
+            ['name' => 'Ingresos', 'description' => 'Ingresos generales', 'color' => '#17a2b8'],
+            ['name' => 'Retiros', 'description' => 'Retiros y extracciones de dinero', 'color' => '#6f42c1']
         ];
         
         foreach ($defaultCategories as $category) {

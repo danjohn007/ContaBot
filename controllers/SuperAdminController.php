@@ -368,6 +368,35 @@ class SuperAdminController extends BaseController {
     }
     
     /**
+     * Process Advance Payment Registration
+     */
+    public function advancePayment() {
+        if (!$this->isPost()) {
+            $this->redirect('superadmin/payments');
+        }
+        
+        $billingId = $this->post('billing_id');
+        $paymentMethod = $this->post('payment_method');
+        $transactionId = $this->post('transaction_id');
+        $notes = $this->post('notes');
+        $paymentDate = $this->post('payment_date');
+        
+        if (!$billingId || !$paymentMethod || !$paymentDate) {
+            $this->setFlash('error', 'Todos los campos obligatorios deben ser completados');
+            $this->redirect('superadmin/payments');
+        }
+        
+        try {
+            $this->userModel->registerAdvancePayment($billingId, $paymentMethod, $transactionId, $notes, $paymentDate);
+            $this->setFlash('success', 'Adelanto de pago registrado exitosamente');
+        } catch (Exception $e) {
+            $this->setFlash('error', 'Error al registrar adelanto de pago: ' . $e->getMessage());
+        }
+        
+        $this->redirect('superadmin/payments');
+    }
+    
+    /**
      * Loyalty System Management
      */
     public function loyalty() {
