@@ -50,6 +50,19 @@ class SuperAdminController extends BaseController {
     }
     
     /**
+     * Get database-compatible date difference function
+     */
+    private function getDateDiffFunction($date1, $date2) {
+        if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            // SQLite date difference
+            return "julianday($date1) - julianday($date2)";
+        } else {
+            // MySQL date difference
+            return "DATEDIFF($date1, $date2)";
+        }
+    }
+    
+    /**
      * SuperAdmin Dashboard
      */
     public function index() {
@@ -286,6 +299,9 @@ class SuperAdminController extends BaseController {
         $whereClause = "WHERE u.account_status = ? AND u.user_type != 'superadmin'";
         $params = [$status];
         
+        // Get database-compatible date difference function
+        $dateDiffFunction = $this->getDateDiffFunction('u.next_payment_date', 'CURRENT_DATE');
+        
         $query = "SELECT u.*, sp.name as plan_name, sp.price as plan_price,
                          pending_bh.payment_status, pending_bh.payment_date, pending_bh.amount as pending_amount,
                          pending_bh.billing_period_start, pending_bh.billing_period_end, pending_bh.id as billing_id,
@@ -294,7 +310,12 @@ class SuperAdminController extends BaseController {
                             WHEN pending_bh.id IS NOT NULL THEN 'pending'
                             WHEN u.next_payment_date > CURRENT_TIMESTAMP THEN 'paid'
                             ELSE 'overdue'
-                         END as payment_display_status
+                         END as payment_display_status,
+                         CASE 
+                            WHEN u.next_payment_date IS NULL THEN 0
+                            WHEN $dateDiffFunction <= 5 THEN 1
+                            ELSE 0
+                         END as can_pay_early
                  FROM users u
                  LEFT JOIN subscription_plans sp ON u.subscription_plan = sp.type
                  LEFT JOIN billing_history pending_bh ON u.id = pending_bh.user_id AND pending_bh.payment_status = 'pending'
@@ -388,18 +409,28 @@ class SuperAdminController extends BaseController {
         }
         
         $billingId = $this->post('billing_id');
+        $userId = $this->post('user_id'); // For users without pending billing
         $paymentMethod = $this->post('payment_method');
         $transactionId = $this->post('transaction_id');
         $notes = $this->post('notes');
         $paymentDate = $this->post('payment_date');
         
-        if (!$billingId || !$paymentMethod || !$paymentDate) {
+        if (!$paymentMethod || !$paymentDate) {
             $this->setFlash('error', 'Todos los campos obligatorios deben ser completados');
             $this->redirect('superadmin/payments');
         }
         
         try {
-            $this->userModel->registerAdvancePayment($billingId, $paymentMethod, $transactionId, $notes, $paymentDate);
+            if ($billingId && $billingId !== 'null') {
+                // User has pending billing - use existing method
+                $this->userModel->registerAdvancePayment($billingId, $paymentMethod, $transactionId, $notes, $paymentDate);
+            } else if ($userId) {
+                // User has no pending billing - create new advance payment
+                $this->userModel->createAdvancePayment($userId, $paymentMethod, $transactionId, $notes, $paymentDate);
+            } else {
+                throw new Exception("No se pudo identificar el usuario para el adelanto de pago");
+            }
+            
             $this->setFlash('success', 'Adelanto de pago registrado exitosamente');
         } catch (Exception $e) {
             $this->setFlash('error', 'Error al registrar adelanto de pago: ' . $e->getMessage());
