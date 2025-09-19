@@ -133,7 +133,7 @@
                             </span>
                         </td>
                         <td>
-                            <?php if ($user['billing_id'] && $user['payment_status'] === 'pending'): ?>
+                            <?php if ($user['billing_id'] && $user['payment_display_status'] === 'pending'): ?>
                             <div class="btn-group" role="group">
                                 <button type="button" class="btn btn-sm btn-success" 
                                         id="payment-btn-<?php echo $user['billing_id']; ?>"
@@ -155,10 +155,23 @@
                                     Adelantar Pago
                                 </button>
                             </div>
-                            <?php elseif ($user['plan_price'] > 0): ?>
+                            <?php elseif ($user['payment_display_status'] === 'paid'): ?>
                                 <span class="text-success small">
                                     <i class="fas fa-check-circle me-1"></i>
                                     Al día
+                                    <?php if ($user['last_payment_date']): ?>
+                                    <br><small class="text-muted">Último pago: <?php echo date('d/m/Y', strtotime($user['last_payment_date'])); ?></small>
+                                    <?php endif; ?>
+                                </span>
+                            <?php elseif ($user['payment_display_status'] === 'overdue'): ?>
+                                <span class="text-danger small">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Vencido
+                                </span>
+                            <?php elseif ($user['plan_price'] > 0): ?>
+                                <span class="text-info small">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Esperando facturación
                                 </span>
                             <?php else: ?>
                                 <span class="text-muted small">Plan gratuito</span>
@@ -408,11 +421,7 @@ document.getElementById('registerPaymentForm').addEventListener('submit', functi
     
     // Disable the payment button to prevent multiple submissions
     const billingId = document.getElementById('paymentBillingId').value;
-    const paymentBtn = document.getElementById('payment-btn-' + billingId);
-    if (paymentBtn) {
-        paymentBtn.disabled = true;
-        paymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Procesando...';
-    }
+    disablePaymentButtons(billingId);
 });
 
 // Form validation for advance payment
@@ -425,5 +434,24 @@ document.getElementById('advancePaymentForm').addEventListener('submit', functio
         alert('Por favor complete todos los campos obligatorios.');
         return false;
     }
+    
+    // Disable the payment button to prevent multiple submissions
+    const billingId = document.getElementById('advancePaymentBillingId').value;
+    disablePaymentButtons(billingId);
 });
+
+function disablePaymentButtons(billingId) {
+    const paymentBtn = document.getElementById('payment-btn-' + billingId);
+    const advanceBtn = document.querySelector(`[onclick*="advancePayment(${billingId}"]`);
+    
+    if (paymentBtn) {
+        paymentBtn.disabled = true;
+        paymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Procesando...';
+    }
+    
+    if (advanceBtn) {
+        advanceBtn.disabled = true;
+        advanceBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Procesando...';
+    }
+}
 </script>

@@ -287,11 +287,23 @@ class SuperAdminController extends BaseController {
         $params = [$status];
         
         $query = "SELECT u.*, sp.name as plan_name, sp.price as plan_price,
-                         bh.payment_status, bh.payment_date, bh.amount as pending_amount,
-                         bh.billing_period_start, bh.billing_period_end, bh.id as billing_id
+                         pending_bh.payment_status, pending_bh.payment_date, pending_bh.amount as pending_amount,
+                         pending_bh.billing_period_start, pending_bh.billing_period_end, pending_bh.id as billing_id,
+                         recent_bh.payment_date as last_payment_date,
+                         CASE 
+                            WHEN pending_bh.id IS NOT NULL THEN 'pending'
+                            WHEN u.next_payment_date > CURRENT_TIMESTAMP THEN 'paid'
+                            ELSE 'overdue'
+                         END as payment_display_status
                  FROM users u
                  LEFT JOIN subscription_plans sp ON u.subscription_plan = sp.type
-                 LEFT JOIN billing_history bh ON u.id = bh.user_id AND bh.payment_status = 'pending'
+                 LEFT JOIN billing_history pending_bh ON u.id = pending_bh.user_id AND pending_bh.payment_status = 'pending'
+                 LEFT JOIN (
+                     SELECT user_id, MAX(payment_date) as payment_date
+                     FROM billing_history 
+                     WHERE payment_status = 'paid' 
+                     GROUP BY user_id
+                 ) recent_bh ON u.id = recent_bh.user_id
                  $whereClause
                  ORDER BY u.name ASC
                  LIMIT ? OFFSET ?";
