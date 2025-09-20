@@ -360,6 +360,71 @@ class User {
     }
     
     /**
+     * Create advance payment for user without pending billing
+     */
+    public function createAdvancePayment($userId, $paymentMethod, $transactionId = null, $notes = null, $paymentDate = null) {
+        if (!$paymentDate) {
+            $paymentDate = date('Y-m-d H:i:s');
+        }
+        
+        try {
+            $this->conn->beginTransaction();
+            
+            // Get user's current plan information
+            $userQuery = "SELECT u.*, sp.id as plan_id, sp.type, sp.duration_months, sp.price
+                         FROM users u
+                         INNER JOIN subscription_plans sp ON u.subscription_plan = sp.type
+                         WHERE u.id = ?";
+            $userStmt = $this->conn->prepare($userQuery);
+            $userStmt->execute([$userId]);
+            $userInfo = $userStmt->fetch();
+            
+            if (!$userInfo) {
+                throw new Exception("Usuario o plan no encontrado");
+            }
+            
+            // Calculate billing period dates based on user's next payment date
+            $nextBillingStart = $userInfo['next_payment_date'] ? date('Y-m-d', strtotime($userInfo['next_payment_date'])) : date('Y-m-d');
+            $nextBillingEnd = date('Y-m-d', strtotime($nextBillingStart . ' +' . $userInfo['duration_months'] . ' months -1 day'));
+            
+            // Create advance payment billing record
+            $advanceBillingQuery = "INSERT INTO billing_history (user_id, plan_id, amount, billing_period_start, billing_period_end, payment_status, payment_method, transaction_id, notes, payment_date) 
+                                   VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?)";
+            $advanceBillingStmt = $this->conn->prepare($advanceBillingQuery);
+            $advanceBillingStmt->execute([
+                $userId, 
+                $userInfo['plan_id'], 
+                $userInfo['price'], 
+                $nextBillingStart, 
+                $nextBillingEnd,
+                $paymentMethod,
+                $transactionId,
+                'Adelanto de pago - ' . ($notes ?? ''),
+                $paymentDate
+            ]);
+            
+            // Update user's next payment date to the period after the advance payment
+            $futurePaymentDate = date('Y-m-d H:i:s', strtotime($nextBillingEnd . ' +' . $userInfo['duration_months'] . ' months'));
+            
+            $userUpdateQuery = "UPDATE users SET 
+                               last_payment_date = ?,
+                               next_payment_date = ?,
+                               updated_at = CURRENT_TIMESTAMP
+                               WHERE id = ?";
+            
+            $userUpdateStmt = $this->conn->prepare($userUpdateQuery);
+            $userUpdateStmt->execute([$paymentDate, $futurePaymentDate, $userId]);
+            
+            $this->conn->commit();
+            return true;
+            
+        } catch (Exception $e) {
+            $this->conn->rollback();
+            throw $e;
+        }
+    }
+    
+    /**
      * Get financial dashboard data for SuperAdmin
      */
     public function getFinancialStats() {

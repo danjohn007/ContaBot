@@ -68,10 +68,10 @@
                             <div class="text-white-50 small text-uppercase px-3 mb-2">SuperAdmin</div>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'superadmin') !== false ? 'active' : ''; ?>" 
+                            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'superadmin') !== false && !strpos($_SERVER['REQUEST_URI'], 'superadmin/') ? 'active' : ''; ?>" 
                                href="<?php echo BASE_URL; ?>superadmin">
-                                <i class="fas fa-crown me-2"></i>
-                                Panel Admin
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
@@ -110,6 +110,7 @@
                         </li>
                         <?php endif; ?>
                         
+                        <?php if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'superadmin'): ?>
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['REQUEST_URI']) === '' || basename($_SERVER['REQUEST_URI']) === 'dashboard' ? 'active' : ''; ?>" 
                                href="<?php echo BASE_URL; ?>dashboard">
@@ -117,6 +118,7 @@
                                 Dashboard
                             </a>
                         </li>
+                        <?php endif; ?>
                         
                         <li class="nav-item">
                             <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'movements') !== false ? 'active' : ''; ?>" 

@@ -149,12 +149,35 @@
                                         onclick="advancePayment(
                                             <?php echo $user['billing_id']; ?>, 
                                             '<?php echo htmlspecialchars($user['name']); ?>', 
-                                            <?php echo $user['pending_amount']; ?>
-                                        )">
+                                            <?php echo $user['pending_amount']; ?>,
+                                            <?php echo $user['id']; ?>
+                                        )">>
                                     <i class="fas fa-fast-forward me-1"></i>
                                     Adelantar Pago
                                 </button>
                             </div>
+                            <?php elseif ($user['payment_display_status'] === 'paid' && isset($user['can_pay_early']) && $user['can_pay_early'] == 1): ?>
+                                <div class="btn-group" role="group">
+                                    <span class="text-success small me-2">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Al día
+                                        <?php if ($user['last_payment_date']): ?>
+                                        <br><small class="text-muted">Último pago: <?php echo date('d/m/Y', strtotime($user['last_payment_date'])); ?></small>
+                                        <?php endif; ?>
+                                    </span>
+                                    <?php if ($user['plan_price'] > 0): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-warning" 
+                                            onclick="advancePayment(
+                                                null, 
+                                                '<?php echo htmlspecialchars($user['name']); ?>', 
+                                                <?php echo $user['plan_price']; ?>,
+                                                <?php echo $user['id']; ?>
+                                            )">
+                                        <i class="fas fa-fast-forward me-1"></i>
+                                        Adelantar Pago
+                                    </button>
+                                    <?php endif; ?>
+                                </div>
                             <?php elseif ($user['payment_display_status'] === 'paid'): ?>
                                 <span class="text-success small">
                                     <i class="fas fa-check-circle me-1"></i>
@@ -162,6 +185,7 @@
                                     <?php if ($user['last_payment_date']): ?>
                                     <br><small class="text-muted">Último pago: <?php echo date('d/m/Y', strtotime($user['last_payment_date'])); ?></small>
                                     <?php endif; ?>
+                                    <br><small class="text-info">Botón habilitado 5 días antes del vencimiento</small>
                                 </span>
                             <?php elseif ($user['payment_display_status'] === 'overdue'): ?>
                                 <span class="text-danger small">
@@ -316,6 +340,7 @@
             <form id="advancePaymentForm" method="POST" action="<?php echo BASE_URL; ?>superadmin/advance-payment">
                 <div class="modal-body">
                     <input type="hidden" name="billing_id" id="advancePaymentBillingId">
+                    <input type="hidden" name="user_id" id="advancePaymentUserId">
                     
                     <div class="alert alert-warning">
                         <strong>Usuario:</strong> <span id="advancePaymentUserName"></span><br>
@@ -396,13 +421,17 @@ function registerPayment(billingId, userName, amount) {
     new bootstrap.Modal(document.getElementById('registerPaymentModal')).show();
 }
 
-function advancePayment(billingId, userName, amount) {
-    document.getElementById('advancePaymentBillingId').value = billingId;
+function advancePayment(billingId, userName, amount, userId = null) {
+    document.getElementById('advancePaymentBillingId').value = billingId || '';
+    document.getElementById('advancePaymentUserId').value = userId || '';
     document.getElementById('advancePaymentUserName').textContent = userName;
     document.getElementById('advancePaymentAmount').textContent = parseFloat(amount).toFixed(2);
     
     // Reset form
     document.getElementById('advancePaymentForm').reset();
+    // Set hidden fields again as reset clears them
+    document.getElementById('advancePaymentBillingId').value = billingId || '';
+    document.getElementById('advancePaymentUserId').value = userId || '';
     document.getElementById('advancePaymentDate').value = new Date().toISOString().slice(0, 16);
     
     new bootstrap.Modal(document.getElementById('advancePaymentModal')).show();
