@@ -17,6 +17,51 @@
     </div>
 </div>
 
+<!-- Date Filter -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Filtro de Fechas
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="<?php echo BASE_URL; ?>superadmin/financial" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="start_date" class="form-label">Fecha Inicio</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" 
+                               value="<?php echo htmlspecialchars($start_date ?? ''); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="end_date" class="form-label">Fecha Fin</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" 
+                               value="<?php echo htmlspecialchars($end_date ?? ''); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i>
+                            Filtrar
+                        </button>
+                        <a href="<?php echo BASE_URL; ?>superadmin/financial" class="btn btn-outline-secondary">
+                            <i class="fas fa-refresh me-1"></i>
+                            Limpiar
+                        </a>
+                        <small class="d-block text-muted mt-1">
+                            <?php if (!empty($start_date) && !empty($end_date)): ?>
+                                Mostrando: <?php echo date('d/m/Y', strtotime($start_date)); ?> - <?php echo date('d/m/Y', strtotime($end_date)); ?>
+                            <?php else: ?>
+                                Por defecto: Últimos 12 meses
+                            <?php endif; ?>
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Financial Statistics Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-4">
@@ -107,7 +152,12 @@
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">
                     <i class="fas fa-chart-area me-2"></i>
-                    Ingresos por Mes (Últimos 12 meses)
+                    Ingresos por Mes 
+                    <?php if (!empty($start_date) && !empty($end_date)): ?>
+                        (<?php echo date('m/Y', strtotime($start_date)); ?> - <?php echo date('m/Y', strtotime($end_date)); ?>)
+                    <?php else: ?>
+                        (Últimos 12 meses)
+                    <?php endif; ?>
                 </h6>
             </div>
             <div class="card-body">

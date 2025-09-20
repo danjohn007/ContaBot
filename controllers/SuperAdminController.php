@@ -152,11 +152,22 @@ class SuperAdminController extends BaseController {
      * Financial Dashboard
      */
     public function financial() {
-        $stats = $this->userModel->getFinancialStats();
+        // Get date range parameters (default to last 12 months)
+        $startDate = isset($_GET['start_date']) ? $_GET['start_date'] : '';
+        $endDate = isset($_GET['end_date']) ? $_GET['end_date'] : '';
         
-        // Get revenue by month (last 12 months) - using database-agnostic functions
+        // Set default dates if not provided
+        if (empty($startDate)) {
+            $startDate = date('Y-m-d', strtotime('-12 months'));
+        }
+        if (empty($endDate)) {
+            $endDate = date('Y-m-d');
+        }
+        
+        $stats = $this->userModel->getFinancialStats($startDate, $endDate);
+        
+        // Get revenue by month for the selected period - using database-agnostic functions
         $dateFormat = $this->getDateFormatFilter('payment_date', '%Y-%m');
-        $dateSubtract = $this->getDateSubtractFilter(12);
         
         $revenueQuery = "SELECT 
                         $dateFormat as month,
@@ -164,12 +175,12 @@ class SuperAdminController extends BaseController {
                         COUNT(*) as payments
                         FROM billing_history 
                         WHERE payment_status = 'paid' 
-                        AND payment_date >= $dateSubtract
+                        AND payment_date >= ? AND payment_date <= ?
                         GROUP BY $dateFormat
                         ORDER BY month";
         
         $revenueStmt = $this->db->prepare($revenueQuery);
-        $revenueStmt->execute();
+        $revenueStmt->execute([$startDate, $endDate . ' 23:59:59']);
         $monthlyRevenue = $revenueStmt->fetchAll();
         
         // Get recent payments
@@ -190,6 +201,8 @@ class SuperAdminController extends BaseController {
             'stats' => $stats,
             'monthly_revenue' => $monthlyRevenue,
             'recent_payments' => $recentPayments,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
             'flash' => $this->getFlash()
         ];
         

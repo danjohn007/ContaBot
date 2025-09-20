@@ -308,8 +308,27 @@ class User {
     /**
      * Get financial dashboard data for SuperAdmin
      */
-    public function getFinancialStats() {
+    /**
+     * Get financial statistics for a date range
+     */
+    public function getFinancialStats($startDate = null, $endDate = null) {
         $stats = [];
+        
+        // Set default dates if not provided (last 12 months)
+        if (!$startDate) {
+            $startDate = date('Y-m-d', strtotime('-12 months'));
+        }
+        if (!$endDate) {
+            $endDate = date('Y-m-d');
+        }
+        
+        // Total revenue for the period
+        $query = "SELECT COALESCE(SUM(amount), 0) as total FROM billing_history 
+                 WHERE payment_status = 'paid' 
+                 AND payment_date >= ? AND payment_date <= ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([$startDate, $endDate . ' 23:59:59']);
+        $stats['total_revenue'] = $stmt->fetch()['total'];
         
         // Total active users
         $query = "SELECT COUNT(*) as total FROM users WHERE account_status = 'active' AND user_type != 'superadmin'";
@@ -323,7 +342,7 @@ class User {
         $stmt->execute();
         $stats['pending_users'] = $stmt->fetch()['total'];
         
-        // Monthly revenue
+        // Monthly revenue (current month)
         $startOfMonth = $this->getStartOfMonthFunction();
         $query = "SELECT COALESCE(SUM(amount), 0) as total FROM billing_history 
                  WHERE payment_status = 'paid' 
@@ -331,6 +350,32 @@ class User {
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         $stats['monthly_revenue'] = $stmt->fetch()['total'];
+        
+        // Payments this month (count)
+        $query = "SELECT COUNT(*) as total FROM billing_history 
+                 WHERE payment_status = 'paid' 
+                 AND payment_date >= $startOfMonth";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['monthly_payments'] = $stmt->fetch()['total'];
+        
+        // Users with paid plans (paying users)
+        $query = "SELECT COUNT(DISTINCT u.id) as total FROM users u
+                 JOIN billing_history bh ON u.id = bh.user_id
+                 WHERE u.account_status = 'active' AND u.user_type != 'superadmin'
+                 AND bh.payment_status = 'paid'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['paying_users'] = $stmt->fetch()['total'];
+        
+        // Average payment amount for the period
+        $query = "SELECT AVG(amount) as average FROM billing_history 
+                 WHERE payment_status = 'paid' 
+                 AND payment_date >= ? AND payment_date <= ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([$startDate, $endDate . ' 23:59:59']);
+        $average = $stmt->fetch()['average'];
+        $stats['average_payment'] = $average ? $average : 0;
         
         // Outstanding payments
         $query = "SELECT COALESCE(SUM(amount), 0) as total FROM billing_history 
