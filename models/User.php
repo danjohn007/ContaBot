@@ -124,7 +124,7 @@ class User {
     /**
      * Approve user and set subscription
      */
-    public function approveUser($userId, $planType, $approvedBy) {
+    public function approveUser($userId, $planType, $approvedBy, $commissionRate = 10.0) {
         $this->conn->beginTransaction();
         
         try {
@@ -168,6 +168,17 @@ class User {
                                 VALUES (?, ?, ?, ?, ?, 'pending')";
                 $billingStmt = $this->conn->prepare($billingQuery);
                 $billingStmt->execute([$userId, $plan['id'], $plan['price'], $startDate, $endDate]);
+            }
+            
+            // Update or create referral link with commission rate
+            $referralQuery = "UPDATE referral_links SET commission_rate = ? WHERE user_id = ?";
+            $referralStmt = $this->conn->prepare($referralQuery);
+            $referralStmt->execute([$commissionRate, $userId]);
+            
+            // If no referral link exists, create one
+            if ($referralStmt->rowCount() == 0) {
+                $referralModel = new Referral($this->conn);
+                $referralModel->generateReferralLink($userId, $commissionRate);
             }
             
             $this->conn->commit();

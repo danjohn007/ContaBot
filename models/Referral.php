@@ -156,7 +156,24 @@ class Referral {
     /**
      * Get all referrals for SuperAdmin (commission management)
      */
-    public function getAllReferrals($limit = 50, $offset = 0) {
+    public function getAllReferrals($limit = 50, $offset = 0, $search = '', $status = 'all') {
+        $whereClause = "WHERE 1=1";
+        $params = [];
+        
+        if (!empty($search)) {
+            $whereClause .= " AND (u1.name LIKE ? OR u1.email LIKE ? OR u2.name LIKE ? OR u2.email LIKE ?)";
+            $searchParam = "%$search%";
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+        }
+        
+        if ($status !== 'all') {
+            $whereClause .= " AND rr.commission_status = ?";
+            $params[] = $status;
+        }
+        
         $query = "SELECT rr.*, 
                     u1.name as referrer_name, u1.email as referrer_email,
                     u2.name as referred_name, u2.email as referred_email,
@@ -165,11 +182,19 @@ class Referral {
                  JOIN users u1 ON rr.referrer_id = u1.id 
                  JOIN users u2 ON rr.referred_user_id = u2.id 
                  LEFT JOIN commission_payments cp ON rr.id = cp.referral_registration_id
+                 $whereClause
                  ORDER BY rr.registered_at DESC 
                  LIMIT ? OFFSET ?";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindValue(1, (int)$limit, PDO::PARAM_INT);
-        $stmt->bindValue(2, (int)$offset, PDO::PARAM_INT);
+        
+        // Bind search and status parameters
+        foreach ($params as $i => $param) {
+            $stmt->bindValue($i + 1, $param);
+        }
+        
+        // Bind limit and offset
+        $stmt->bindValue(count($params) + 1, (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(count($params) + 2, (int)$offset, PDO::PARAM_INT);
         $stmt->execute();
         
         return $stmt->fetchAll();

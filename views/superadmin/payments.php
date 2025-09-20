@@ -21,18 +21,46 @@
 
 <!-- Filter Options -->
 <div class="row mb-4">
-    <div class="col-md-6">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Buscar Usuarios</h6>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="<?php echo BASE_URL; ?>superadmin/payments">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="search" 
+                               placeholder="Buscar por nombre, email o teléfono..."
+                               value="<?php echo htmlspecialchars($current_search ?? ''); ?>">
+                        <?php if (isset($current_status) && $current_status !== 'active'): ?>
+                            <input type="hidden" name="status" value="<?php echo htmlspecialchars($current_status); ?>">
+                        <?php endif; ?>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <?php if (!empty($current_search)): ?>
+                            <a href="<?php echo BASE_URL; ?>superadmin/payments<?php echo isset($current_status) && $current_status !== 'active' ? '?status=' . urlencode($current_status) : ''; ?>" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
                 <h6 class="mb-0">Filtrar por Estado</h6>
             </div>
             <div class="card-body">
                 <div class="btn-group" role="group">
-                    <a href="<?php echo BASE_URL; ?>superadmin/payments?status=active" 
+                    <a href="<?php echo BASE_URL; ?>superadmin/payments?status=active<?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>" 
                        class="btn <?php echo $current_status === 'active' ? 'btn-success' : 'btn-outline-success'; ?>">
                         Usuarios Activos
                     </a>
-                    <a href="<?php echo BASE_URL; ?>superadmin/payments?status=suspended" 
+                    <a href="<?php echo BASE_URL; ?>superadmin/payments?status=suspended<?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>" 
                        class="btn <?php echo $current_status === 'suspended' ? 'btn-danger' : 'btn-outline-danger'; ?>">
                         Suspendidos
                     </a>
@@ -40,7 +68,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
                 <h6 class="mb-0">Resumen</h6>

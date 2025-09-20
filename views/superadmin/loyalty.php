@@ -96,6 +96,72 @@
     </div>
 </div>
 
+<!-- Search and Filter Options -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Buscar Referencias</h6>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="<?php echo BASE_URL; ?>superadmin/loyalty">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="search" 
+                               placeholder="Buscar por nombre o email..."
+                               value="<?php echo htmlspecialchars($current_search ?? ''); ?>">
+                        <?php if (isset($current_status) && $current_status !== 'all'): ?>
+                            <input type="hidden" name="status" value="<?php echo htmlspecialchars($current_status); ?>">
+                        <?php endif; ?>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <?php if (!empty($current_search)): ?>
+                            <a href="<?php echo BASE_URL; ?>superadmin/loyalty<?php echo isset($current_status) && $current_status !== 'all' ? '?status=' . urlencode($current_status) : ''; ?>" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Filtrar por Estado</h6>
+            </div>
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    <a href="<?php echo BASE_URL; ?>superadmin/loyalty?status=all<?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>" 
+                       class="btn <?php echo ($current_status ?? 'all') === 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                        Todos
+                    </a>
+                    <a href="<?php echo BASE_URL; ?>superadmin/loyalty?status=pending<?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>" 
+                       class="btn <?php echo ($current_status ?? '') === 'pending' ? 'btn-warning' : 'btn-outline-warning'; ?>">
+                        Pendientes
+                    </a>
+                    <a href="<?php echo BASE_URL; ?>superadmin/loyalty?status=paid<?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>" 
+                       class="btn <?php echo ($current_status ?? '') === 'paid' ? 'btn-success' : 'btn-outline-success'; ?>">
+                        Pagadas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Resumen</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">Total de referencias: <strong><?php echo number_format($stats['total_referrals'] ?? 0); ?></strong></p>
+                <p class="mb-0">Mostrando página <?php echo $current_page; ?> de <?php echo $total_pages; ?></p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Referrals Management -->
 <div class="card shadow">
     <div class="card-header py-3">
