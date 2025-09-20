@@ -37,6 +37,7 @@ class UserController extends BaseController {
         if ($this->isPost()) {
             $name = sanitizeInput($this->post('name'));
             $rfc = sanitizeInput($this->post('rfc'));
+            $phone = sanitizeInput($this->post('phone'));
             $user_type = $this->post('user_type');
             
             // Validation
@@ -55,8 +56,13 @@ class UserController extends BaseController {
                 $errors[] = 'El RFC no tiene un formato válido.';
             }
             
+            // Phone validation (optional but if provided should be valid format)
+            if (!empty($phone) && !preg_match('/^[0-9]{10,15}$/', $phone)) {
+                $errors[] = 'El teléfono debe contener entre 10 y 15 dígitos.';
+            }
+            
             if (empty($errors)) {
-                if ($this->userModel->updateProfile($userId, $name, $rfc, $user_type)) {
+                if ($this->userModel->updateProfile($userId, $name, $rfc, $user_type, $phone)) {
                     // Update session data
                     $_SESSION['user_name'] = $name;
                     $_SESSION['user_type'] = $user_type;

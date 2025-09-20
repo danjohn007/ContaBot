@@ -78,6 +78,19 @@
                                 Solo si manejas facturas fiscales o tienes actividad empresarial.
                             </div>
                         </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Teléfono (Opcional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                       placeholder="5551234567" maxlength="15" 
+                                       value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>">
+                            </div>
+                            <div class="form-text">
+                                Número de teléfono para contacto (solo números).
+                            </div>
+                        </div>
                     </div>
                     
                     <hr class="my-4">

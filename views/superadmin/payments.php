@@ -133,20 +133,45 @@
                             </span>
                         </td>
                         <td>
-                            <?php if ($user['billing_id'] && $user['payment_status'] === 'pending'): ?>
-                            <button type="button" class="btn btn-sm btn-success" 
-                                    onclick="registerPayment(
-                                        <?php echo $user['billing_id']; ?>, 
-                                        '<?php echo htmlspecialchars($user['name']); ?>', 
-                                        <?php echo $user['pending_amount']; ?>
-                                    )">
-                                <i class="fas fa-money-bill-wave me-1"></i>
-                                Registrar Pago
-                            </button>
-                            <?php elseif ($user['plan_price'] > 0): ?>
+                            <?php if ($user['billing_id'] && $user['payment_display_status'] === 'pending'): ?>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-success" 
+                                        id="payment-btn-<?php echo $user['billing_id']; ?>"
+                                        onclick="registerPayment(
+                                            <?php echo $user['billing_id']; ?>, 
+                                            '<?php echo htmlspecialchars($user['name']); ?>', 
+                                            <?php echo $user['pending_amount']; ?>
+                                        )">
+                                    <i class="fas fa-money-bill-wave me-1"></i>
+                                    Registrar Pago
+                                </button>
+                                <button type="button" class="btn btn-sm btn-warning" 
+                                        onclick="advancePayment(
+                                            <?php echo $user['billing_id']; ?>, 
+                                            '<?php echo htmlspecialchars($user['name']); ?>', 
+                                            <?php echo $user['pending_amount']; ?>
+                                        )">
+                                    <i class="fas fa-fast-forward me-1"></i>
+                                    Adelantar Pago
+                                </button>
+                            </div>
+                            <?php elseif ($user['payment_display_status'] === 'paid'): ?>
                                 <span class="text-success small">
                                     <i class="fas fa-check-circle me-1"></i>
                                     Al día
+                                    <?php if ($user['last_payment_date']): ?>
+                                    <br><small class="text-muted">Último pago: <?php echo date('d/m/Y', strtotime($user['last_payment_date'])); ?></small>
+                                    <?php endif; ?>
+                                </span>
+                            <?php elseif ($user['payment_display_status'] === 'overdue'): ?>
+                                <span class="text-danger small">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Vencido
+                                </span>
+                            <?php elseif ($user['plan_price'] > 0): ?>
+                                <span class="text-info small">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Esperando facturación
                                 </span>
                             <?php else: ?>
                                 <span class="text-muted small">Plan gratuito</span>
@@ -277,6 +302,87 @@
     </div>
 </div>
 
+<!-- Advance Payment Modal -->
+<div class="modal fade" id="advancePaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-fast-forward me-2 text-warning"></i>
+                    Adelantar Pago
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="advancePaymentForm" method="POST" action="<?php echo BASE_URL; ?>superadmin/advance-payment">
+                <div class="modal-body">
+                    <input type="hidden" name="billing_id" id="advancePaymentBillingId">
+                    
+                    <div class="alert alert-warning">
+                        <strong>Usuario:</strong> <span id="advancePaymentUserName"></span><br>
+                        <strong>Monto del próximo pago:</strong> $<span id="advancePaymentAmount"></span><br>
+                        <strong>Nota:</strong> Este pago se aplicará al siguiente período de facturación.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="advancePaymentMethod" class="form-label">
+                                    <i class="fas fa-credit-card me-1"></i>
+                                    Método de Pago <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="advancePaymentMethod" name="payment_method" required>
+                                    <option value="">Seleccionar método</option>
+                                    <?php foreach ($payment_methods as $value => $label): ?>
+                                    <option value="<?php echo $value; ?>"><?php echo $label; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="advancePaymentDate" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Fecha de Pago <span class="text-danger">*</span>
+                                </label>
+                                <input type="datetime-local" class="form-control" id="advancePaymentDate" name="payment_date" 
+                                       value="<?php echo date('Y-m-d\TH:i'); ?>" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="advanceTransactionId" class="form-label">
+                            <i class="fas fa-hashtag me-1"></i>
+                            ID de Transacción / Referencia
+                        </label>
+                        <input type="text" class="form-control" id="advanceTransactionId" name="transaction_id" 
+                               placeholder="Número de referencia, transferencia, etc.">
+                        <div class="form-text">Opcional: Cualquier referencia o ID de la transacción</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="advancePaymentNotes" class="form-label">
+                            <i class="fas fa-sticky-note me-1"></i>
+                            Notas Adicionales
+                        </label>
+                        <textarea class="form-control" id="advancePaymentNotes" name="notes" rows="3" 
+                                  placeholder="Cualquier observación adicional sobre el adelanto de pago"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-fast-forward me-1"></i>
+                        Adelantar Pago
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function registerPayment(billingId, userName, amount) {
     document.getElementById('paymentBillingId').value = billingId;
@@ -290,7 +396,19 @@ function registerPayment(billingId, userName, amount) {
     new bootstrap.Modal(document.getElementById('registerPaymentModal')).show();
 }
 
-// Form validation
+function advancePayment(billingId, userName, amount) {
+    document.getElementById('advancePaymentBillingId').value = billingId;
+    document.getElementById('advancePaymentUserName').textContent = userName;
+    document.getElementById('advancePaymentAmount').textContent = parseFloat(amount).toFixed(2);
+    
+    // Reset form
+    document.getElementById('advancePaymentForm').reset();
+    document.getElementById('advancePaymentDate').value = new Date().toISOString().slice(0, 16);
+    
+    new bootstrap.Modal(document.getElementById('advancePaymentModal')).show();
+}
+
+// Form validation for regular payment
 document.getElementById('registerPaymentForm').addEventListener('submit', function(e) {
     const paymentMethod = document.getElementById('paymentMethod').value;
     const paymentDate = document.getElementById('paymentDate').value;
@@ -300,5 +418,40 @@ document.getElementById('registerPaymentForm').addEventListener('submit', functi
         alert('Por favor complete todos los campos obligatorios.');
         return false;
     }
+    
+    // Disable the payment button to prevent multiple submissions
+    const billingId = document.getElementById('paymentBillingId').value;
+    disablePaymentButtons(billingId);
 });
+
+// Form validation for advance payment
+document.getElementById('advancePaymentForm').addEventListener('submit', function(e) {
+    const paymentMethod = document.getElementById('advancePaymentMethod').value;
+    const paymentDate = document.getElementById('advancePaymentDate').value;
+    
+    if (!paymentMethod || !paymentDate) {
+        e.preventDefault();
+        alert('Por favor complete todos los campos obligatorios.');
+        return false;
+    }
+    
+    // Disable the payment button to prevent multiple submissions
+    const billingId = document.getElementById('advancePaymentBillingId').value;
+    disablePaymentButtons(billingId);
+});
+
+function disablePaymentButtons(billingId) {
+    const paymentBtn = document.getElementById('payment-btn-' + billingId);
+    const advanceBtn = document.querySelector(`[onclick*="advancePayment(${billingId}"]`);
+    
+    if (paymentBtn) {
+        paymentBtn.disabled = true;
+        paymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Procesando...';
+    }
+    
+    if (advanceBtn) {
+        advanceBtn.disabled = true;
+        advanceBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Procesando...';
+    }
+}
 </script>
