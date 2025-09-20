@@ -125,14 +125,21 @@ class SuperAdminController extends BaseController {
         
         $userId = $this->post('user_id');
         $planType = $this->post('plan_type');
+        $commissionRate = (float) $this->post('commission_rate', 10.0);
         
         if (!$userId || !$planType) {
             $this->setFlash('error', 'Datos incompletos para aprobar usuario');
             $this->redirect('superadmin/pending-users');
         }
         
+        // Validate commission rate
+        if ($commissionRate < 0 || $commissionRate > 100) {
+            $this->setFlash('error', 'El porcentaje de comisión debe estar entre 0% y 100%');
+            $this->redirect('superadmin/pending-users');
+        }
+        
         try {
-            $this->userModel->approveUser($userId, $planType, $_SESSION['user_id']);
+            $this->userModel->approveUser($userId, $planType, $_SESSION['user_id'], $commissionRate);
             $this->setFlash('success', 'Usuario aprobado exitosamente');
         } catch (Exception $e) {
             $this->setFlash('error', 'Error al aprobar usuario: ' . $e->getMessage());
@@ -145,11 +152,22 @@ class SuperAdminController extends BaseController {
      * Financial Dashboard
      */
     public function financial() {
-        $stats = $this->userModel->getFinancialStats();
+        // Get date range parameters (default to last 12 months)
+        $startDate = isset($_GET['start_date']) ? $_GET['start_date'] : '';
+        $endDate = isset($_GET['end_date']) ? $_GET['end_date'] : '';
         
-        // Get revenue by month (last 12 months) - using database-agnostic functions
+        // Set default dates if not provided
+        if (empty($startDate)) {
+            $startDate = date('Y-m-d', strtotime('-12 months'));
+        }
+        if (empty($endDate)) {
+            $endDate = date('Y-m-d');
+        }
+        
+        $stats = $this->userModel->getFinancialStats($startDate, $endDate);
+        
+        // Get revenue by month for the selected period - using database-agnostic functions
         $dateFormat = $this->getDateFormatFilter('payment_date', '%Y-%m');
-        $dateSubtract = $this->getDateSubtractFilter(12);
         
         $revenueQuery = "SELECT 
                         $dateFormat as month,
@@ -157,12 +175,12 @@ class SuperAdminController extends BaseController {
                         COUNT(*) as payments
                         FROM billing_history 
                         WHERE payment_status = 'paid' 
-                        AND payment_date >= $dateSubtract
+                        AND payment_date >= ? AND payment_date <= ?
                         GROUP BY $dateFormat
                         ORDER BY month";
         
         $revenueStmt = $this->db->prepare($revenueQuery);
-        $revenueStmt->execute();
+        $revenueStmt->execute([$startDate, $endDate . ' 23:59:59']);
         $monthlyRevenue = $revenueStmt->fetchAll();
         
         // Get recent payments
@@ -183,6 +201,8 @@ class SuperAdminController extends BaseController {
             'stats' => $stats,
             'monthly_revenue' => $monthlyRevenue,
             'recent_payments' => $recentPayments,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
             'flash' => $this->getFlash()
         ];
         
@@ -195,6 +215,7 @@ class SuperAdminController extends BaseController {
     public function users() {
         $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
         $status = isset($_GET['status']) ? $_GET['status'] : 'all';
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
         $limit = 20;
         $offset = ($page - 1) * $limit;
         
@@ -206,12 +227,22 @@ class SuperAdminController extends BaseController {
             $params[] = $status;
         }
         
+        if (!empty($search)) {
+            $whereClause .= " AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)";
+            $searchParam = "%$search%";
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+        }
+        
         // Get users with pagination
         $query = "SELECT u.*, sp.name as plan_name, sp.price as plan_price,
-                         approver.name as approved_by_name
+                         approver.name as approved_by_name,
+                         rl.commission_rate
                  FROM users u
                  LEFT JOIN subscription_plans sp ON u.subscription_plan = sp.type
                  LEFT JOIN users approver ON u.approved_by = approver.id
+                 LEFT JOIN referral_links rl ON u.id = rl.user_id
                  $whereClause
                  ORDER BY u.created_at DESC
                  LIMIT ? OFFSET ?";
@@ -241,6 +272,7 @@ class SuperAdminController extends BaseController {
             'total_pages' => ceil($totalUsers / $limit),
             'total_users' => $totalUsers,
             'current_status' => $status,
+            'current_search' => $search,
             'flash' => $this->getFlash()
         ];
         
@@ -274,17 +306,58 @@ class SuperAdminController extends BaseController {
     }
     
     /**
+     * Update user commission rate
+     */
+    public function updateUserCommission() {
+        if (!$this->isPost()) {
+            $this->redirect('superadmin/users');
+        }
+        
+        $userId = $this->post('user_id');
+        $commissionRate = (float) $this->post('commission_rate');
+        
+        if (!$userId) {
+            $this->setFlash('error', 'ID de usuario requerido');
+            $this->redirect('superadmin/users');
+        }
+        
+        if ($commissionRate < 0 || $commissionRate > 100) {
+            $this->setFlash('error', 'El porcentaje de comisión debe estar entre 0% y 100%');
+            $this->redirect('superadmin/users');
+        }
+        
+        try {
+            $referralModel = new Referral($this->db);
+            $referralModel->updateCommissionRate($userId, $commissionRate);
+            $this->setFlash('success', 'Comisión actualizada exitosamente');
+        } catch (Exception $e) {
+            $this->setFlash('error', 'Error al actualizar comisión: ' . $e->getMessage());
+        }
+        
+        $this->redirect('superadmin/users');
+    }
+    
+    /**
      * Payment Registration Module
      */
     public function payments() {
         $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
         $status = isset($_GET['status']) ? $_GET['status'] : 'active';
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
         $limit = 20;
         $offset = ($page - 1) * $limit;
         
         // Get active users with their payment information
         $whereClause = "WHERE u.account_status = ? AND u.user_type != 'superadmin'";
         $params = [$status];
+        
+        if (!empty($search)) {
+            $whereClause .= " AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)";
+            $searchParam = "%$search%";
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+        }
         
         $query = "SELECT u.*, sp.name as plan_name, sp.price as plan_price,
                          bh.payment_status, bh.payment_date, bh.amount as pending_amount,
@@ -332,6 +405,7 @@ class SuperAdminController extends BaseController {
             'total_pages' => ceil($totalUsers / $limit),
             'total_users' => $totalUsers,
             'current_status' => $status,
+            'current_search' => $search,
             'flash' => $this->getFlash()
         ];
         
@@ -373,13 +447,15 @@ class SuperAdminController extends BaseController {
     public function loyalty() {
         $referralModel = new Referral($this->db);
         
-        // Get pagination parameters
+        // Get pagination and filter parameters
         $page = max(1, (int) $this->get('page', 1));
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        $status = isset($_GET['status']) ? $_GET['status'] : 'all';
         $limit = 20;
         $offset = ($page - 1) * $limit;
         
-        // Get all referrals with pagination
-        $referrals = $referralModel->getAllReferrals($limit, $offset);
+        // Get all referrals with pagination and filters
+        $referrals = $referralModel->getAllReferrals($limit, $offset, $search, $status);
         
         // Get summary stats
         $stats = $this->getReferralStats();
@@ -390,6 +466,8 @@ class SuperAdminController extends BaseController {
             'stats' => $stats,
             'current_page' => $page,
             'total_pages' => ceil($stats['total_referrals'] / $limit),
+            'current_search' => $search,
+            'current_status' => $status,
             'flash' => $this->getFlash()
         ];
         

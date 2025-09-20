@@ -15,26 +15,54 @@
 
 <!-- Filter Options -->
 <div class="row mb-4">
-    <div class="col-md-6">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Buscar Usuarios</h6>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="<?php echo BASE_URL; ?>superadmin/users">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="search" 
+                               placeholder="Buscar por nombre, email o teléfono..."
+                               value="<?php echo htmlspecialchars($current_search ?? ''); ?>">
+                        <?php if (isset($current_status) && $current_status !== 'all'): ?>
+                            <input type="hidden" name="status" value="<?php echo htmlspecialchars($current_status); ?>">
+                        <?php endif; ?>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <?php if (!empty($current_search)): ?>
+                            <a href="<?php echo BASE_URL; ?>superadmin/users<?php echo isset($current_status) && $current_status !== 'all' ? '?status=' . urlencode($current_status) : ''; ?>" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
                 <h6 class="mb-0">Filtrar por Estado</h6>
             </div>
             <div class="card-body">
                 <div class="btn-group" role="group">
-                    <a href="<?php echo BASE_URL; ?>superadmin/users?status=all" 
+                    <a href="<?php echo BASE_URL; ?>superadmin/users?status=all<?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>" 
                        class="btn <?php echo $current_status === 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">
                         Todos
                     </a>
-                    <a href="<?php echo BASE_URL; ?>superadmin/users?status=active" 
+                    <a href="<?php echo BASE_URL; ?>superadmin/users?status=active<?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>" 
                        class="btn <?php echo $current_status === 'active' ? 'btn-success' : 'btn-outline-success'; ?>">
                         Activos
                     </a>
-                    <a href="<?php echo BASE_URL; ?>superadmin/users?status=pending" 
+                    <a href="<?php echo BASE_URL; ?>superadmin/users?status=pending<?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>" 
                        class="btn <?php echo $current_status === 'pending' ? 'btn-warning' : 'btn-outline-warning'; ?>">
                         Pendientes
                     </a>
-                    <a href="<?php echo BASE_URL; ?>superadmin/users?status=suspended" 
+                    <a href="<?php echo BASE_URL; ?>superadmin/users?status=suspended<?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>" 
                        class="btn <?php echo $current_status === 'suspended' ? 'btn-danger' : 'btn-outline-danger'; ?>">
                         Suspendidos
                     </a>
@@ -42,7 +70,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
                 <h6 class="mb-0">Resumen</h6>
@@ -75,6 +103,7 @@
                         <th>Email</th>
                         <th>Tipo</th>
                         <th>Plan</th>
+                        <th>Comisión</th>
                         <th>Estado</th>
                         <th>Fecha Registro</th>
                         <th>Aprobado Por</th>
@@ -108,6 +137,16 @@
                                 <?php endif; ?>
                             <?php else: ?>
                                 <span class="text-muted">Sin plan</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($user['commission_rate'] !== null): ?>
+                                <span class="badge bg-info" style="cursor: pointer;" 
+                                      onclick="editCommission(<?php echo $user['id']; ?>, <?php echo $user['commission_rate']; ?>, '<?php echo htmlspecialchars($user['name']); ?>')">
+                                    <?php echo number_format($user['commission_rate'], 1); ?>%
+                                </span>
+                            <?php else: ?>
+                                <span class="text-muted">-</span>
                             <?php endif; ?>
                         </td>
                         <td>
@@ -155,6 +194,13 @@
                                 </button>
                                 <?php endif; ?>
                                 
+                                <?php if ($user['commission_rate'] !== null): ?>
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        onclick="editCommission(<?php echo $user['id']; ?>, <?php echo $user['commission_rate']; ?>, '<?php echo htmlspecialchars($user['name']); ?>')">
+                                    <i class="fas fa-percentage"></i>
+                                </button>
+                                <?php endif; ?>
+                                
                                 <button type="button" class="btn btn-outline-info" 
                                         onclick="viewUserDetails(<?php echo $user['id']; ?>)">
                                     <i class="fas fa-eye"></i>
@@ -173,7 +219,7 @@
             <ul class="pagination justify-content-center">
                 <?php if ($current_page > 1): ?>
                 <li class="page-item">
-                    <a class="page-link" href="<?php echo BASE_URL; ?>superadmin/users?page=<?php echo $current_page - 1; ?>&status=<?php echo $current_status; ?>">
+                    <a class="page-link" href="<?php echo BASE_URL; ?>superadmin/users?page=<?php echo $current_page - 1; ?>&status=<?php echo $current_status; ?><?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>">
                         Anterior
                     </a>
                 </li>
@@ -186,7 +232,7 @@
                 for ($i = $start; $i <= $end; $i++):
                 ?>
                 <li class="page-item <?php echo $i === $current_page ? 'active' : ''; ?>">
-                    <a class="page-link" href="<?php echo BASE_URL; ?>superadmin/users?page=<?php echo $i; ?>&status=<?php echo $current_status; ?>">
+                    <a class="page-link" href="<?php echo BASE_URL; ?>superadmin/users?page=<?php echo $i; ?>&status=<?php echo $current_status; ?><?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>">
                         <?php echo $i; ?>
                     </a>
                 </li>
@@ -194,7 +240,7 @@
                 
                 <?php if ($current_page < $total_pages): ?>
                 <li class="page-item">
-                    <a class="page-link" href="<?php echo BASE_URL; ?>superadmin/users?page=<?php echo $current_page + 1; ?>&status=<?php echo $current_status; ?>">
+                    <a class="page-link" href="<?php echo BASE_URL; ?>superadmin/users?page=<?php echo $current_page + 1; ?>&status=<?php echo $current_status; ?><?php echo !empty($current_search) ? '&search=' . urlencode($current_search) : ''; ?>">
                         Siguiente
                     </a>
                 </li>
@@ -255,6 +301,47 @@
     </div>
 </div>
 
+<!-- Edit Commission Modal -->
+<div class="modal fade" id="editCommissionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-percentage me-2"></i>
+                    Editar Comisión
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editCommissionForm" method="POST" action="<?php echo BASE_URL; ?>superadmin/update-user-commission">
+                <div class="modal-body">
+                    <input type="hidden" name="user_id" id="editCommissionUserId">
+                    <p>Editar porcentaje de comisión para <strong id="editCommissionUserName"></strong></p>
+                    <div class="mb-3">
+                        <label for="editCommissionRate" class="form-label">Porcentaje de Comisión</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" 
+                                   id="editCommissionRate" 
+                                   name="commission_rate" 
+                                   min="0" 
+                                   max="100" 
+                                   step="0.01" 
+                                   required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <div class="form-text">
+                            Ingrese un valor entre 0% y 100%
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function suspendUser(userId, userName) {
     document.getElementById('suspendUserId').value = userId;
@@ -266,6 +353,13 @@ function reactivateUser(userId, userName) {
     document.getElementById('reactivateUserId').value = userId;
     document.getElementById('reactivateUserName').textContent = userName;
     new bootstrap.Modal(document.getElementById('reactivateUserModal')).show();
+}
+
+function editCommission(userId, currentRate, userName) {
+    document.getElementById('editCommissionUserId').value = userId;
+    document.getElementById('editCommissionUserName').textContent = userName;
+    document.getElementById('editCommissionRate').value = currentRate;
+    new bootstrap.Modal(document.getElementById('editCommissionModal')).show();
 }
 
 function viewUserDetails(userId) {

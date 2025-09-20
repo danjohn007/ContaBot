@@ -150,6 +150,27 @@
                                         </div>
                                         
                                         <div class="mb-3">
+                                            <label for="commission_rate<?php echo $user['id']; ?>" class="form-label">
+                                                <i class="fas fa-percentage me-1"></i>
+                                                Porcentaje de Comisión *
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" 
+                                                       id="commission_rate<?php echo $user['id']; ?>" 
+                                                       name="commission_rate" 
+                                                       value="10" 
+                                                       min="0" 
+                                                       max="100" 
+                                                       step="0.01" 
+                                                       required>
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                            <div class="form-text">
+                                                Porcentaje de comisión para referencias (0% - 100%). Por defecto: 10%
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
                                             <label class="form-label">Detalles del Plan</label>
                                             <div id="planDetails<?php echo $user['id']; ?>" class="border rounded p-3 bg-light">
                                                 <small class="text-muted">Seleccione un plan para ver los detalles</small>
